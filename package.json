@@ -25,5 +25,13 @@
     "require": "./dist/index.cjs",
     "import": "./dist/index.mjs",
     "node": "./dist/index.cjs"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^0.18.1",
+    "@dfinity/candid": "^0.18.1",
+    "@dfinity/principal": "^0.18.1",
+    "web3": "^4.0.3",
+    "web3-utils": "^4.0.3",
+    "web3-validator": "^1.0.2"
   }
 }
