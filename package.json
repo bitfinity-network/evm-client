@@ -1,0 +1,29 @@
+{
+  "name": "evm-client",
+  "version": "1.0.0",
+  "description": "Bitfinity EVM TS Client",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "repository": "https://github.com/bitfinity-network/evm-client",
+  "author": "Bitfinity",
+  "type": "module",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.6.2",
+    "tsup": "^7.2.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "watch": "tsup --watch",
+    "build": "tsup  --format esm,cjs,iife --dts --sourcemap src/index.ts",
+    "changeset": "changeset",
+    "release": "yarn build && changeset publish",
+    "start": "yarn build -- --watch"
+  },
+  "exports": {
+    "default": "./dist/index.cjs",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.mjs",
+    "node": "./dist/index.cjs"
+  }
+}
