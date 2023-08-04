@@ -1,17 +1,10 @@
 import Web3 from "web3";
-import Ic, { IcConnector, MinterIDL, MinterService } from "./ic";
-import { WrappedTokenParams, TokenProp } from "./types/bridge";
-import BftBridgeABI from "./abi/BftBridge.json";
 import {TransactionReceipt} from 'web3-types'
 
 import {
   Address,
-  AddressWithChainID,
-  Id256Factory,
   Id256,
 } from "./types/common";
-import { Account, Subaccount, Timestamp, Tokens, TxIndex } from "./ic/idl/icrc/icrc.did";
-import { Principal} from "@dfinity/principal";
 import {MintReason} from "./ic/idl/minter/minter.did";
 
 export type TxHash = string; 
@@ -51,14 +44,16 @@ export interface BridgeInterface {
         amount: number) => Promise<TxHash| undefined>
 
     burn_native_tokens: (
-        w3: Web3,
-        to_token: Id256,
-        bridge: Address,
-        amount: number) => Promise<TxHash | undefined>
-
+            w3: Web3,
+            dstToken: Id256, 
+            recipient: Id256,
+            dstChainId: number,
+            amount: number) => Promise<TxHash| undefined> 
+    
     mint_erc_20_tokens: (
         w3: Web3,
         burn_tx_hash: TxHash,
+        chain_id: number
     ) => Promise<TransactionReceipt>
 
     mint_native_tokens: (

@@ -1,21 +1,20 @@
 import Web3 from "web3";
 import _ ,{ IcConnector, MinterIDL, MinterService } from "./ic";
-import { WrappedTokenParams, TokenProp } from "./types/bridge";
 import BftBridgeABI from "./abi/BftBridge.json";
-//import BftBridgeABI from "./abi/.json";
+import WrappedTokenABI from "./abi/WrappedToken.json";
+import { isAddress } from "web3-validator";
+import { MintReason} from "./ic/idl/minter/minter.did";
 
 import {
   Address,
-  AddressWithChainID,
-  Id256Factory,
   Id256,
 } from "./types/common";
-import { Account, Subaccount, Timestamp, Tokens } from "./ic/idl/icrc/icrc.did";
 import { Principal} from "@dfinity/principal";
 import { BridgeInterface, SwapResult, TxHash } from "./BridgeInterface";
 import {TransactionReceipt} from 'web3-types'
-import {MintReason} from "./ic/idl/minter/minter.did";
 import {AbiItem} from 'web3-utils'
+
+type SignedMintOrder = Uint8Array | number[];
 
 export class Bridge implements BridgeInterface {
 
@@ -39,6 +38,19 @@ export class Bridge implements BridgeInterface {
         return new Address(result[0]);
       }
       return undefined;
+  }
+
+  public async createMintOrder(mintReason: MintReason): Promise<SignedMintOrder> {
+    const result = await this.Ic.actor<MinterService>(
+      this.minterCanister,
+      MinterIDL
+    ).create_erc_20_mint_order(mintReason); 
+    if ("Err" in result) {
+       //TODO: THROW THIS as an ERROR AS WELL?
+       console.log(result.Err);
+       throw result;
+    }
+    return result.Ok;
   }
 
   public async get_wrapped_token_address(
@@ -86,9 +98,9 @@ export class Bridge implements BridgeInterface {
     amount: number): Promise<TxHash| undefined> {
       const bridgeAddress = await this.get_bft_bridge_contract(w3);
       const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
-      const WrappedToken = new w3.eth.Contract(BftBridgeABI as AbiItem[], from_token.getAddress());
+      const WrappedToken = new w3.eth.Contract(WrappedTokenABI as AbiItem[], from_token.getAddress());
       await WrappedToken.methods
-          .approve(BftBridgeABI, amountInWei)
+          .approve(BftBridgeABI, amount)
           .send();
 
       //TODO
@@ -113,7 +125,9 @@ export class Bridge implements BridgeInterface {
         const bridgeAddress = await this.get_bft_bridge_contract(w3);
         const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
         
-        
+      //TODO
+      //TODO!
+      //TODO: Issue the transaction and send it
         //TODO: Issue the transaction and send it
 
         const result = await bridge.methods
@@ -126,6 +140,45 @@ export class Bridge implements BridgeInterface {
           throw Error("Transaction not successful")
         }
       }
+
+      async mintOrder(w3: Web3, encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
+
+        const bridge = await this.get_bft_bridge_contract(w3);
+        const encodedOrderBytes = Web3.utils.bytesToHex([...encodedOrder]);
+        const contract = new w3.eth.Contract(
+            BftBridgeABI as AbiItem[],
+            bridge?.getAddress()
+          );
+          const result = await contract.methods
+            .mint(encodedOrderBytes)
+            .send();
+        
+            if (result && result.transactionHash){
+              return result;
+            } else {
+              throw Error("Transaction not successful")
+            }
+      }
+
+    async public mint_erc_20_tokens(
+        w3: Web3,
+        burn_tx_hash: TxHash,
+        burn_chain_id: number
+    ): Promise<TransactionReceipt> {
+
+      const reason = {
+          Erc20Burn: {
+            burn_tx_hash,
+            chain_id: burn_chain_id
+        }
+      };
+      const order: SignedMintOrder = await this.createMintOrder(reason);
+      return await this.mintOrder(w3, order);
+    }
+
+    mint_native_tokens: (
+        reason: MintReason,
+    ) => Promise<TransactionReceipt>
 
 
   register_bft_bridge_contract: (provider) => Promise<Address>
@@ -141,20 +194,6 @@ export class Bridge implements BridgeInterface {
     
     
 
-    burn_native_tokens: (
-        provider,
-        to_token: Id256,
-        bridge: Address,
-        amount: number) => Promise<TxHash | undefined>
-
-    mint_erc_20_tokens: (
-        provider,
-        burn_tx_hash: TxHash,
-    ) => Promise<TransactionReceipt>
-
-    mint_native_tokens: (
-        reason: MintReason,
-    ) => Promise<TransactionReceipt>
 }
 
 
@@ -165,30 +204,7 @@ export class Bridge implements BridgeInterface {
 
 
   
-  public async burnWrappedToken(
-    provider,
-    fromToken: Address,
-    recipient: AddressWithChainID | Principal,
-    wrappedToken:AddressWithChainID | Principal,  // 
-    amount: number, // lowest denomination
-    bftBridge: Address,
-  ): Promise<string | undefined> {
-    try {
-      const wrappedTokenID = Id256Factory.from(wrappedToken);
-      if (externalToken) {
-        const contract = provider(BftBridgeABI, bftBridge);
-        await contract.methods
-          .approve(BftBridgeABI, amountInWei)
-          .send();
-        const result = await contract.methods
-          .burn(amountInWei, token)
-        if (result && result.transactionHash) return result.transactionHash;
-      }
-      return undefined;
-    } catch (error) {
-      throw new Error(error);
-    }
-  }
+  
 
   public async transferIcrcTokens(icProvider, {fee = [], memo = [], fromSubaccount = [], createdAtTime =[], amount, expectedAllowance, expiresAt, spender}: transferIcrcTokensParams) {
     // approve transfer
