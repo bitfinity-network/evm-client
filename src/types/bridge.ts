@@ -1,3 +1,8 @@
+import {
+  Address,
+  Id256,
+} from "./common";
+
 export interface TokenProp {
     id?: string;
     name: string;
@@ -13,10 +18,30 @@ export interface TokenProp {
     network?: "evm" | "ic";
   }
 
-export interface BridgeManagerType {
-    amount: number;
-    token?: TokenProp;
-    userEthAddress?: string;
-    userPrincipal?: string;
-    handleStep?: (step: string, state?: string) => void;
+export interface WrappedTokenParams {
+  name: string;
+  symbol: string;
+  from: Address; // User's address
+  tokenAddress: Address;
+  bftBridgeContractAddress: Address;
+  
+}
+
+export interface BurnERC20TokenParams {
+  token: Address;
+  amountInWei: number;
+  bftBridge: Address;
+  from: Address;
+}
+
+interface transferIcrcTokensParams {
+  fee: Tokens[];
+  memo?: number[];
+  fromSubaccount?: Subaccount;
+  createdAtTime?: Timestamp[];
+  amount: number;
+  expectedAllowance?: number[];
+  expiresAt?: Timestamp;
+  spender: Account;
+
 }

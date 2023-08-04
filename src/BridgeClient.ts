@@ -1,149 +1,142 @@
 import Web3 from "web3";
-import Ic, { Icrc1IDL, MinterIDL, MinterService } from "./ic";
-import { BridgeManagerType, TokenProp } from "./types/bridge";
+import _ ,{ IcConnector, MinterIDL, MinterService } from "./ic";
+import { WrappedTokenParams, TokenProp } from "./types/bridge";
 import BftBridgeABI from "./abi/BftBridge.json";
-import { isAddress } from "web3-validator";
 import {
-  convertAddressToId256,
-  convertPrincipalToId256,
-  isZeroAddress,
-} from "./utils";
-import { Principal } from "@dfinity/principal";
+  Address,
+  AddressWithChainID,
+  Id256Factory,
+  Id256,
+} from "./types/common";
 import { Account, Subaccount, Timestamp, Tokens } from "./ic/idl/icrc/icrc.did";
+import { Principal} from "@dfinity/principal";
+import { BridgeInterface, SwapResult, TxHash } from "./BridgeInterface";
+import {TransactionReceipt} from 'web3-types'
+import {MintReason} from "./ic/idl/minter/minter.did";
+import {AbiItem} from 'web3-utils'
 
-type Address = string;
-type PrincipalString = string;
+export class Bridge implements BridgeInterface {
 
-interface BridgeClientType {}
+  private minterCanister: Principal;
+  private Ic: IcConnector; 
 
-interface DeployWrappedTokenParams {
-  name: string;
-  symbol: string;
-  from: Address; // User's address
-  tokenAddress: Address;
-  bftBridgeContractAddress: Address;
+  constructor(minterCanister: Principal, Ic: IcConnector){
+    this.minterCanister = minterCanister;
+    this.Ic = Ic 
+  }
+
+  check_erc20_balance: (w3: Web3, token: Address) => Promise<number>
   
-}
-
-interface BurnERC20TokenParams {
-  token: Address;
-  amountInWei: number;
-  bftBridge: Address;
-  from: Address;
-}
-
-interface transferIcrcTokensParams {
-  fee: Tokens[];
-  memo?: number[];
-  fromSubaccount?: Subaccount;
-  createdAtTime?: Timestamp[];
-  amount: number;
-  expectedAllowance?: number[];
-  expiresAt?: Timestamp;
-  spender: Account;
-
-}
-// TODO: create class Address to handle address and principal validation
-
-class Id256 {
-  constructor(address) {
-    convertAddressToId256(address);
-  }
-
-  public convertAddressToId256(tokenAddress) {
-    return isAddress(tokenAddress)
-      ? convertAddressToId256(tokenAddress)
-      : convertPrincipalToId256(Principal.fromText(tokenAddress));
-  }
-}
-
-export class BridgeClient {
-  constructor({}: BridgeClientType) {}
-
-  /**
-   *
-   * This function returns the bft bridge smart
-   * contract address
-   *
-   * @param {minterCanisterPrincipal}
-   * @returns
-   */
-  public async getBftBridgeContract(
-    minterCanisterPrincipal: PrincipalString
-  ): Promise<Address | undefined> {
-    try {
-      const result = await Ic.actor<MinterService>(
-        minterCanisterPrincipal,
+  public async get_bft_bridge_contract(w3: Web3): Promise<Address | undefined> {
+      const chainId = Number(await w3.eth.getChainId());
+      const result = await this.Ic.actor<MinterService>(
+        this.minterCanister,
         MinterIDL
-      ).get_bft_bridge_contract([]);
+      ).get_bft_bridge_contract([chainId]);
       if (result.length) {
-        return result[0];
+        return new Address(result[0]);
       }
       return undefined;
-    } catch (error) {
-      throw new error();
-    }
   }
 
-  public async getWrappedTokenAddress(
-    provider,
-    contractAddress: Address,
-    tokenAddress: Address | PrincipalString
-  ): Promise<Address | undefined> {
-    const externalToken = new Id256(tokenAddress);
-    const contract = new provider.eth.Contract(BftBridgeABI, contractAddress);
-    const wrappedTokenAddress = await contract.methods
-      .getWrappedTokenAddress(externalToken)
+  public async get_wrapped_token_address(
+    w3: Web3,
+    fromToken: Id256): Promise<Address | undefined> {
+
+    const bridge = await this.get_bft_bridge_contract(w3);
+    const contract = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
+    const wrappedToken = 
+      await contract.methods
+      .getWrappedToken(fromToken)
       .call();
-    if (isZeroAddress(wrappedTokenAddress)) {
+  
+    if (new Address(wrappedToken).isZero()) {
       return undefined;
     }
-    return wrappedTokenAddress;
+    return wrappedToken;
   }
 
-  public async deployWrappedToken(
-    provider,
-    {
-      name,
-      symbol,
-      tokenAddress,
-      from,
-      bftBridgeContractAddress,
-    }: DeployWrappedTokenParams
-  ): Promise<string | undefined> {
-    try {
-      const externalToken = new Id256(tokenAddress);
-      if (externalToken) {
-        const contract = provider(BftBridgeABI, bftBridgeContractAddress);
-        const result = await contract.methods
-          .deployERC20(name, symbol, externalToken)
-          .from({ from });
-        const newWrappedTokenAddress =
+  public async deploy_bft_wrapped_token(
+    w3: Web3,   
+    name: string,
+    symbol: string,
+    fromToken: Id256,
+  ): Promise<Address | undefined> {
+
+      const bridge = await this.get_bft_bridge_contract(w3);
+      const contract = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
+      const result = await contract.methods
+          .deployERC20(name, symbol, fromToken)
+      const WrappedTokenAddress =
           result.events.NewWrappedToken.returnValues.wrappedAddress;
-        if (newWrappedTokenAddress) {
-          return newWrappedTokenAddress;
+        if (WrappedTokenAddress) {
+          return new Address(WrappedTokenAddress);
         }
         return undefined;
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
   }
 
-  public async burnERC20Token(
+
+  register_bft_bridge_contract: (provider) => Promise<Address>
+  create_bft_bridge_contract: (provider) => Promise<Address>
+    
+    swap_tokens: (
+        from_provider, 
+        to_provider, 
+        from_token: Id256,
+        to_token: Id256, 
+        amount: number
+    ) => Promise<SwapResult>
+    
+    async burn_erc_20_tokens: (
+        w3: Web3,
+        from_token: Address,
+        to_token: Id256, 
+        recipient: Id256,
+        amount: number ): Promise<TxHash | undefined> {
+          return undefined;
+        }
+
+    burn_native_tokens: (
+        provider,
+        to_token: Id256,
+        bridge: Address,
+        amount: number) => Promise<TxHash | undefined>
+
+    mint_erc_20_tokens: (
+        provider,
+        burn_tx_hash: TxHash,
+    ) => Promise<TransactionReceipt>
+
+    mint_native_tokens: (
+        reason: MintReason,
+    ) => Promise<TransactionReceipt>
+}
+
+
+
+
+
+
+
+
+  
+  public async burnWrappedToken(
     provider,
-    { token, amountInWei, bftBridge, from }: BurnERC20TokenParams
+    fromToken: Address,
+    recipient: AddressWithChainID | Principal,
+    wrappedToken:AddressWithChainID | Principal,  // 
+    amount: number, // lowest denomination
+    bftBridge: Address,
   ): Promise<string | undefined> {
     try {
-      const externalToken = new Id256(token);
+      const wrappedTokenID = Id256Factory.from(wrappedToken);
       if (externalToken) {
         const contract = provider(BftBridgeABI, bftBridge);
         await contract.methods
           .approve(BftBridgeABI, amountInWei)
-          .send({ from });
+          .send();
         const result = await contract.methods
           .burn(amountInWei, token)
-          .from({ from });
         if (result && result.transactionHash) return result.transactionHash;
       }
       return undefined;

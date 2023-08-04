@@ -30,8 +30,9 @@
     "@dfinity/agent": "^0.18.1",
     "@dfinity/candid": "^0.18.1",
     "@dfinity/principal": "^0.18.1",
-    "web3": "^4.0.3",
-    "web3-utils": "^4.0.3",
+    "web3": "1.9.0",
+    "web3-core": "1.9.0",
+    "web3-utils": "1.9.0",
     "web3-validator": "^1.0.2"
   }
 }
