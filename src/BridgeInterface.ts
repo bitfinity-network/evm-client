@@ -45,9 +45,10 @@ export interface BridgeInterface {
     burn_erc_20_tokens: (
         w3: Web3,
         from_token: Address,
-        to_token: Id256, 
+        dstToken: Id256, 
         recipient: Id256,
-        amount: number ) =>Promise<TxHash | undefined>
+        dstChainId: number,
+        amount: number) => Promise<TxHash| undefined>
 
     burn_native_tokens: (
         w3: Web3,

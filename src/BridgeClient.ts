@@ -2,6 +2,8 @@ import Web3 from "web3";
 import _ ,{ IcConnector, MinterIDL, MinterService } from "./ic";
 import { WrappedTokenParams, TokenProp } from "./types/bridge";
 import BftBridgeABI from "./abi/BftBridge.json";
+//import BftBridgeABI from "./abi/.json";
+
 import {
   Address,
   AddressWithChainID,
@@ -75,6 +77,56 @@ export class Bridge implements BridgeInterface {
         return undefined;
   }
 
+  public async burn_erc_20_tokens(
+    w3: Web3,
+    from_token: Address,
+    dstToken: Id256, 
+    recipient: Id256,
+    dstChainId: number,
+    amount: number): Promise<TxHash| undefined> {
+      const bridgeAddress = await this.get_bft_bridge_contract(w3);
+      const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
+      const WrappedToken = new w3.eth.Contract(BftBridgeABI as AbiItem[], from_token.getAddress());
+      await WrappedToken.methods
+          .approve(BftBridgeABI, amountInWei)
+          .send();
+
+      //TODO
+      //TODO!
+      //TODO: Issue the transaction and send it
+
+      const result = await bridge.methods
+            .burn(amount, from_token, recipient, dstToken, dstChainId)
+      if (result && result.transactionHash){
+        return result.transactionHash;
+      } else {
+        throw Error("Transaction not successful")
+      }
+    }
+
+    public async burn_native_tokens(
+      w3: Web3,
+      dstToken: Id256, 
+      recipient: Id256,
+      dstChainId: number,
+      amount: number): Promise<TxHash| undefined> {
+        const bridgeAddress = await this.get_bft_bridge_contract(w3);
+        const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
+        
+        
+        //TODO: Issue the transaction and send it
+
+        const result = await bridge.methods
+              .burn(recipient, dstToken, dstChainId)
+              .send({amount});
+
+        if (result && result.transactionHash){
+          return result.transactionHash;
+        } else {
+          throw Error("Transaction not successful")
+        }
+      }
+
 
   register_bft_bridge_contract: (provider) => Promise<Address>
   create_bft_bridge_contract: (provider) => Promise<Address>
@@ -87,14 +139,7 @@ export class Bridge implements BridgeInterface {
         amount: number
     ) => Promise<SwapResult>
     
-    async burn_erc_20_tokens: (
-        w3: Web3,
-        from_token: Address,
-        to_token: Id256, 
-        recipient: Id256,
-        amount: number ): Promise<TxHash | undefined> {
-          return undefined;
-        }
+    
 
     burn_native_tokens: (
         provider,
