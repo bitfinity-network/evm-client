@@ -4,13 +4,23 @@
   "description": "Bitfinity EVM TS Client",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "repository": "https://github.com/bitfinity-network/evm-client",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitfinity-network/evm-client"
+  },
   "author": "Bitfinity",
   "type": "module",
   "license": "MIT",
   "devDependencies": {
+    "@babel/core": "^7.22.10",
+    "@babel/preset-env": "^7.22.10",
+    "@types/jest": "^29.5.3",
+    "babel-jest": "^29.6.2",
     "jest": "^29.6.2",
-    "tsup": "^7.2.0"
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.1",
+    "tsup": "^7.2.0",
+    "typescript": "^5.1.6"
   },
   "scripts": {
     "test": "jest",
@@ -21,15 +31,17 @@
     "start": "yarn build -- --watch"
   },
   "exports": {
-    "default": "./dist/index.cjs",
-    "require": "./dist/index.cjs",
-    "import": "./dist/index.mjs",
-    "node": "./dist/index.cjs"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
   },
   "dependencies": {
     "@dfinity/agent": "^0.18.1",
     "@dfinity/candid": "^0.18.1",
     "@dfinity/principal": "^0.18.1",
+    "buffer": "^6.0.3",
     "web3": "1.9.0",
     "web3-core": "1.9.0",
     "web3-utils": "1.9.0",

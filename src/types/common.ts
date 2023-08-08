@@ -1,5 +1,6 @@
 import { isAddress, isNullish } from "web3-validator";
 import { Principal } from "@dfinity/principal";
+import {Buffer} from "buffer";
 
 export type Id256 = Buffer
 

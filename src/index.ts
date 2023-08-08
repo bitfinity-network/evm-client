@@ -1,1 +1,2 @@
-export * from "./BridgeManager"
+export * from "./BridgeClient";
+export * from "./ic";
