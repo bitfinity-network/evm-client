@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true,
+    "declarationDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"],
+  "entry": ["src/index.ts"]
+}
