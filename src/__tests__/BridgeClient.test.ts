@@ -1,10 +1,8 @@
 import Web3 from "web3";
 import { Bridge } from "../";
-import { IcConnector, MinterService } from "../ic";
-import { Principal } from "@dfinity/principal";
-import { MintReason } from "../ic/idl/minter/minter.did";
+import { IcConnector } from "../ic";
 import { Address, AddressWithChainID, Id256Factory } from "../types/common";
-import { mockIc, mockWeb3 } from "../mocks/mock"; // Update the path to your mocks file
+import { mockIc, mockWeb3, sampleAddress } from "../mocks/mock"; // Update the path to your mocks file
 
 jest.mock("web3", () => {
   return jest.fn(() => mockWeb3); // Mock Web3 with the mockWeb3 object
@@ -32,6 +30,37 @@ describe("Bridge class", () => {
     it("should return the bridge contract address", async () => {
       const w3 = new Web3(RPC_URL);
       const result = await bridge.get_bft_bridge_contract(w3);
+      expect(result).toEqual(expect.any(Address));
+    });
+  });
+
+  describe("get_wrapped_token_address", () => {
+    it("should return the wrapped token address", async () => {
+      const w3 = new Web3(RPC_URL);
+
+      // Set up mock response for .call() method
+      const fromToken = new AddressWithChainID(sampleAddress, 355113);
+      const buf = Id256Factory.fromAddress(fromToken);
+      const result = await bridge.get_wrapped_token_address(w3, buf);
+      expect(result).toEqual(expect.any(String));
+    });
+  });
+
+  describe("deploy_bft_wrapped_token", () => {
+    it("should return the wrapped token address", async () => {
+      const w3 = new Web3(RPC_URL);
+
+      // Set up mock response for .call() method
+      const fromToken = new AddressWithChainID(sampleAddress, 355113);
+      const buf = Id256Factory.fromAddress(fromToken);
+      const result = await bridge.deploy_bft_wrapped_token(
+        w3,
+        "Token",
+        "TKN",
+        buf,
+        sampleAddress
+      );
+      console.log("result", result);
       expect(result).toEqual(expect.any(Address));
     });
   });
