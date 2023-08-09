@@ -1,1 +1,1 @@
-export * from "./BridgeManager"
+export * from "./bridge-clients/chain"

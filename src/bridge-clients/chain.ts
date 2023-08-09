@@ -1,35 +1,38 @@
 import Web3 from "web3";
-import _ ,{ IcConnector, MinterIDL, MinterService } from "./ic";
-import BftBridgeABI from "./abi/BftBridge.json";
-import WrappedTokenABI from "./abi/WrappedToken.json";
+import _ ,{ IcConnector, MinterIDL, MinterService } from "../ic";
+import BftBridgeABI from "../abi/BftBridge.json";
+import WrappedTokenABI from "../abi/WrappedToken.json";
 import { isAddress } from "web3-validator";
-import { MintReason} from "./ic/idl/minter/minter.did";
+import { MintReason} from "../ic/idl/minter/minter.did";
+import { ethers } from "ethers";
 
 import {
   Address,
   Id256,
-} from "./types/common";
+  SignedMintOrder
+} from "../types/common";
 import { Principal} from "@dfinity/principal";
-import { BridgeInterface, SwapResult, TxHash } from "./BridgeInterface";
-import {TransactionReceipt} from 'web3-types'
+import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
+import {TransactionReceipt} from 'web3-core'
 import {AbiItem} from 'web3-utils'
 
-type SignedMintOrder = Uint8Array | number[];
 
-export class Bridge implements BridgeInterface {
+export class Chain implements chainManagerIface {
 
   private minterCanister: Principal;
   private Ic: IcConnector; 
+  private w3: Web3; 
 
-  constructor(minterCanister: Principal, Ic: IcConnector){
+
+  "constructor"(minterCanister: Principal, Ic: IcConnector, w3: Web3){
     this.minterCanister = minterCanister;
     this.Ic = Ic 
+    this.w3 = w3;
   }
 
-  check_erc20_balance: (w3: Web3, token: Address) => Promise<number>
   
-  public async get_bft_bridge_contract(w3: Web3): Promise<Address | undefined> {
-      const chainId = Number(await w3.eth.getChainId());
+  public async get_bft_bridge_contract(): Promise<Address | undefined> {
+      const chainId = Number(await this.w3.eth.getChainId());
       const result = await this.Ic.actor<MinterService>(
         this.minterCanister,
         MinterIDL
@@ -53,12 +56,10 @@ export class Bridge implements BridgeInterface {
     return result.Ok;
   }
 
-  public async get_wrapped_token_address(
-    w3: Web3,
-    fromToken: Id256): Promise<Address | undefined> {
+  public async get_wrapped_token_address(fromToken: Id256): Promise<Address | undefined> {
 
-    const bridge = await this.get_bft_bridge_contract(w3);
-    const contract = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
+    const bridge = await this.get_bft_bridge_contract();
+    const contract = new this.w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
     const wrappedToken = 
       await contract.methods
       .getWrappedToken(fromToken)
@@ -71,14 +72,13 @@ export class Bridge implements BridgeInterface {
   }
 
   public async deploy_bft_wrapped_token(
-    w3: Web3,   
     name: string,
     symbol: string,
     fromToken: Id256,
   ): Promise<Address | undefined> {
 
-      const bridge = await this.get_bft_bridge_contract(w3);
-      const contract = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
+      const bridge = await this.get_bft_bridge_contract();
+      const contract = new this.w3.eth.Contract(BftBridgeABI as AbiItem[], bridge?.getAddress());
       const result = await contract.methods
           .deployERC20(name, symbol, fromToken)
       const WrappedTokenAddress =
@@ -90,18 +90,17 @@ export class Bridge implements BridgeInterface {
   }
 
   public async burn_erc_20_tokens(
-    w3: Web3,
     from_token: Address,
     dstToken: Id256, 
     recipient: Id256,
     dstChainId: number,
     amount: number): Promise<TxHash| undefined> {
-      const bridgeAddress = await this.get_bft_bridge_contract(w3);
-      const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
-      const WrappedToken = new w3.eth.Contract(WrappedTokenABI as AbiItem[], from_token.getAddress());
+      const bridgeAddress = await this.get_bft_bridge_contract();
+      const bridge = new this.w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
+      const WrappedToken = new this.w3.eth.Contract(WrappedTokenABI as AbiItem[], from_token.getAddress());
       await WrappedToken.methods
           .approve(BftBridgeABI, amount)
-          .send();
+          .send()
 
       //TODO
       //TODO!
@@ -109,6 +108,7 @@ export class Bridge implements BridgeInterface {
 
       const result = await bridge.methods
             .burn(amount, from_token, recipient, dstToken, dstChainId)
+            .on()
       if (result && result.transactionHash){
         return result.transactionHash;
       } else {
@@ -117,13 +117,12 @@ export class Bridge implements BridgeInterface {
     }
 
     public async burn_native_tokens(
-      w3: Web3,
       dstToken: Id256, 
       recipient: Id256,
       dstChainId: number,
       amount: number): Promise<TxHash| undefined> {
-        const bridgeAddress = await this.get_bft_bridge_contract(w3);
-        const bridge = new w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
+        const bridgeAddress = await this.get_bft_bridge_contract();
+        const bridge = new this.w3.eth.Contract(BftBridgeABI as AbiItem[], bridgeAddress?.getAddress());
         
       //TODO
       //TODO!
@@ -141,27 +140,20 @@ export class Bridge implements BridgeInterface {
         }
       }
 
-      async mintOrder(w3: Web3, encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
+      async mintOrder(encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
 
-        const bridge = await this.get_bft_bridge_contract(w3);
+        const bridge = await this.get_bft_bridge_contract();
         const encodedOrderBytes = Web3.utils.bytesToHex([...encodedOrder]);
-        const contract = new w3.eth.Contract(
+        const contract = new this.w3.eth.Contract(
             BftBridgeABI as AbiItem[],
             bridge?.getAddress()
           );
-          const result = await contract.methods
+          return await contract.methods
             .mint(encodedOrderBytes)
-            .send();
-        
-            if (result && result.transactionHash){
-              return result;
-            } else {
-              throw Error("Transaction not successful")
-            }
+            .send()
       }
 
-    async public mint_erc_20_tokens(
-        w3: Web3,
+    public async mint_erc_20_tokens(
         burn_tx_hash: TxHash,
         burn_chain_id: number
     ): Promise<TransactionReceipt> {
@@ -173,16 +165,28 @@ export class Bridge implements BridgeInterface {
         }
       };
       const order: SignedMintOrder = await this.createMintOrder(reason);
-      return await this.mintOrder(w3, order);
+      return await this.mintOrder(order);
     }
 
-    mint_native_tokens: (
+    public async mint_native_tokens(
         reason: MintReason,
-    ) => Promise<TransactionReceipt>
+    ): Promise<TransactionReceipt> {
+      const result = await this.Ic.actor<MinterService>(
+        this.minterCanister,
+        MinterIDL
+      ).mint_native_token(reason);
+      if ("Ok" in result){
+        const txHash = result.Ok;
+        return this.w3.eth.getTransactionReceipt(txHash);
+      } else{
+        throw Error("Not found")
+      }
+    }
 
-
-  register_bft_bridge_contract: (provider) => Promise<Address>
-  create_bft_bridge_contract: (provider) => Promise<Address>
+  burn_icrc2_tokens: (wrapped_token:Address, amount: number) => SignedMintOrder
+  check_erc20_balance: (token: Address) => Promise<number>
+  register_bft_bridge_contract: () => Promise<Address>
+  create_bft_bridge_contract: () => Promise<Address>
     
     swap_tokens: (
         from_provider, 
@@ -204,7 +208,7 @@ export class Bridge implements BridgeInterface {
 
 
   
-  
+  /*
 
   public async transferIcrcTokens(icProvider, {fee = [], memo = [], fromSubaccount = [], createdAtTime =[], amount, expectedAllowance, expiresAt, spender}: transferIcrcTokensParams) {
     // approve transfer
@@ -223,6 +227,4 @@ export class Bridge implements BridgeInterface {
     }
     if("Err" in result) throw new Error(result.Err)
   } 
-
-  //async deployERC20
-}
+*/

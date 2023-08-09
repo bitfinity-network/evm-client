@@ -2,9 +2,18 @@ import { isAddress, isNullish } from "web3-validator";
 import { Principal } from "@dfinity/principal";
 
 export type Id256 = Buffer
+export type SignedMintOrder = Uint8Array | number[];
 
 
 export class Id256Factory {
+
+
+  chainIdFromId256(buffer: Id256): number {
+      if (buffer.readUIntBE(0,1) == 1) {
+        throw Error("Needs an IC Buffer");
+      }; 
+      return buffer.readUIntBE(1, 4); 
+  }
 
   static fromPrincipal(principal: Principal): Id256 {
     const buf = Buffer.alloc(32);
@@ -18,6 +27,7 @@ export class Id256Factory {
   }
   
   static fromAddress(input: AddressWithChainID): Id256 {
+
     const buf = Buffer.alloc(32); // Create a buffer with 32 bytes
     // Set the first byte to EVM_ADDRESS_MARK (0x01 in this example)
     buf[0] = 0x01;
