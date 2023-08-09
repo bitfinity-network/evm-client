@@ -77,5 +77,4 @@ import {
     MinterService,
     IcrcService,
   };
-  export default new IcConnector();
   
