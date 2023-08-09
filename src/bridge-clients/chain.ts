@@ -1,6 +1,5 @@
 // @ts-nocheck
 import Web3 from "web3";
-<<<<<<< HEAD:src/bridge-clients/chain.ts
 import _ ,{ IcConnector, MinterIDL, MinterService } from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
@@ -17,19 +16,6 @@ import { Principal} from "@dfinity/principal";
 import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
 import {TransactionReceipt} from 'web3-core'
 import {AbiItem} from 'web3-utils'
-=======
-import { IcConnector, MinterIDL, MinterService } from "./ic";
-import BftBridgeABI from "./abi/BftBridge.json";
-import WrappedTokenABI from "./abi/WrappedToken.json";
-import { isAddress } from "web3-validator";
-import { MintReason } from "./ic/idl/minter/minter.did";
-
-import { Address, Id256 } from "./types/common";
-import { Principal } from "@dfinity/principal";
-import { BridgeInterface, SwapResult, TxHash } from "./BridgeInterface";
-import { TransactionReceipt } from "web3-types";
-import { AbiItem } from "web3-utils";
->>>>>>> 8a149bd80df87726ad05dee51a5565c16e32f7a4:src/BridgeClient.ts
 
 
 export class Chain implements chainManagerIface {
