@@ -1,6 +1,24 @@
 import { ethers } from "ethers";
+import { mnemonicToSeed } from "bip39";
+import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
+import { Actor, ActorMethod, ActorSubclass, Identity } from "@dfinity/agent";
+import { Principal } from "@dfinity/principal";
+import { createAgent } from "@dfinity/utils";
+import { IDL } from "@dfinity/candid";
+import { IcrcIDL, IcrcService } from "./ic";
+
+import fs from "fs";
+import { Ed25519KeyIdentity } from "@dfinity/identity";
+const { exec, spawn } = require("child_process");
+
+const hdkey = require("hdkey");
+const pemfile = require("pem-file");
+require("dotenv").config();
 
 const RPC_URL = "http://127.0.0.1:8545";
+const IC_HOST = process.env.IC_HOST || "http://127.0.0.1:4943/";
+const LOCAL_TEST_SEED_PHRASE = process.env.LOCAL_TEST_SEED_PHRASE || "";
+const DEFAULT_IDENTITY = process.env.PEM_FILE_PATH || "";
 
 export const connectToWallet = async () => {
   const provider = new ethers.JsonRpcProvider(RPC_URL, {
@@ -36,3 +54,71 @@ export const mintNativeToken = async (address: string) => {
     console.error("Error:", error);
   }
 };
+
+export const mintTesttIcrcToken = async () => {
+  const id = await identityFromSeed(LOCAL_TEST_SEED_PHRASE);
+  const principalText = id.getPrincipal().toText();
+  const mintCommand = `dfx canister call b77ix-eeaaa-aaaaa-qaada-cai icrc1_transfer '(record { to = record { owner = principal "${principalText}"; }; amount = 1000000000:nat;})'`;
+  exec(mintCommand, (error: any, stdout: any, stderr: any) => {
+    if (error) {
+      console.error(`Error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`stderr: ${stderr}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+};
+
+export const identityFromSeed = async (
+  phrase: string
+): Promise<Secp256k1KeyIdentity> => {
+  const seed = await mnemonicToSeed(phrase);
+  const root = hdkey.fromMasterSeed(seed);
+  const addrnode = root.derive("m/44'/223'/0'/0/0");
+
+  const id = Secp256k1KeyIdentity.fromSecretKey(addrnode.privateKey);
+  console.log("id principal", id.getPrincipal().toText());
+  return id;
+};
+
+export const IcConnector = async <T = Record<string, ActorMethod>>(
+  canisterId: string | Principal,
+  idl: IDL.InterfaceFactory
+): Promise<ActorSubclass<T>> => {
+  const identity = await decodeFile(DEFAULT_IDENTITY);
+  const agent = await createAgent({ identity, host: IC_HOST });
+  return Actor.createActor(idl, { agent, canisterId });
+};
+
+export const getIdentity = async () => {
+  return await identityFromSeed(LOCAL_TEST_SEED_PHRASE);
+};
+
+export function decodeFile(file: string) {
+  console.log("file", file);
+  const rawKey = fs.readFileSync(file).toString();
+  console.log("before trim", rawKey.length);
+  const trimmedPattern = rawKey
+    .replace(
+      /(-----BEGIN EC PRIVATE KEY-----|-----END EC PRIVATE KEY-----)/g,
+      ""
+    )
+    .trim();
+  console.log("rawkey", trimmedPattern);
+  console.log("after trim", trimmedPattern.length);
+
+  return decode(rawKey);
+}
+
+export function decode(rawKey: string) {
+  var buf = pemfile.decode(rawKey);
+  console.log("buf", buf.length, buf);
+  if (buf.length != 85) {
+    throw "expecting byte length 85 but got " + buf.length;
+  }
+  let secretKey = Buffer.concat([buf.slice(16, 48), buf.slice(53, 85)]);
+  return Ed25519KeyIdentity.fromSecretKey(secretKey);
+}

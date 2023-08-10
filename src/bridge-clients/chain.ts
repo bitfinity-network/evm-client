@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
@@ -9,7 +10,7 @@ import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
 import { TransactionReceipt } from "web3-core";
 import { AbiItem } from "web3-utils";
 import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
-import { IcrcService } from "../../dist";
+import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 
 export class Chain implements chainManagerIface {
@@ -88,10 +89,15 @@ export class Chain implements chainManagerIface {
     ApproveArgs: ApproveArgs,
     tokenPrincipal: Principal
   ) {
-    const result = await this.Ic.actor<IcrcService>(
-      tokenPrincipal.toText(),
-      IcrcIDL
-    ).icrc2_approve(ApproveArgs);
+    try {
+      const result = await this.Ic.actor<IcrcService>(
+        tokenPrincipal.toText(),
+        IcrcIDL
+      ).icrc2_approve(ApproveArgs);
+      console.log("burn result", result);
+    } catch (error) {
+      console.log("burn error", error);
+    }
   }
 
   public async createMintOrder(
