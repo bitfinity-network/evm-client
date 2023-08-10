@@ -66,6 +66,10 @@ export const idlFactory = ({ IDL }) => {
     'AnonymousPrincipal' : IDL.Null,
     'BftBridgeDoesNotExist' : IDL.Null,
     'JsonRpcCallFailed' : IDL.Text,
+    'InsufficientOperationPoints' : IDL.Record({
+      'got' : IDL.Nat32,
+      'expected' : IDL.Nat32,
+    }),
     'EvmNotFound' : IDL.Nat32,
     'InvalidBftBridgeContract' : IDL.Null,
     'ExternalEvmError' : Error,
@@ -109,7 +113,42 @@ export const idlFactory = ({ IDL }) => {
   });
   const MetricsStorage = IDL.Record({ 'metrics' : MetricsMap });
   const Result_2 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : Error_1 });
+  const OperationPricing = IDL.Record({
+    'erc20_mint' : IDL.Nat32,
+    'evm_registration' : IDL.Nat32,
+    'evmc_notification' : IDL.Nat32,
+    'icrc_mint' : IDL.Nat32,
+  });
   const Result_3 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : Error_1 });
+  const TransactionReceiptLog = IDL.Record({
+    'transactionHash' : IDL.Text,
+    'blockNumber' : IDL.Text,
+    'data' : IDL.Text,
+    'blockHash' : IDL.Text,
+    'transactionIndex' : IDL.Text,
+    'topics' : IDL.Vec(IDL.Text),
+    'address' : IDL.Text,
+    'logIndex' : IDL.Text,
+    'removed' : IDL.Bool,
+  });
+  const TransactionReceipt = IDL.Record({
+    'to' : IDL.Opt(IDL.Text),
+    'status' : IDL.Opt(IDL.Text),
+    'output' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'transactionHash' : IDL.Text,
+    'cumulativeGasUsed' : IDL.Text,
+    'blockNumber' : IDL.Text,
+    'from' : IDL.Text,
+    'logs' : IDL.Vec(TransactionReceiptLog),
+    'blockHash' : IDL.Text,
+    'root' : IDL.Opt(IDL.Text),
+    'type' : IDL.Opt(IDL.Text),
+    'transactionIndex' : IDL.Text,
+    'effectiveGasPrice' : IDL.Opt(IDL.Text),
+    'logsBloom' : IDL.Text,
+    'contractAddress' : IDL.Opt(IDL.Text),
+    'gasUsed' : IDL.Opt(IDL.Text),
+  });
   const Result_4 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error_1 });
   return IDL.Service({
     'approve_icrc_mint' : IDL.Func([IDL.Nat32, IDL.Text], [Result], []),
@@ -133,14 +172,26 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_minter_canister_evm_address' : IDL.Func([], [Result_2], ['query']),
+    'get_operation_pricing' : IDL.Func([], [OperationPricing], ['query']),
     'get_owner' : IDL.Func([], [IDL.Principal], ['query']),
+    'get_user_operation_points' : IDL.Func(
+        [IDL.Opt(IDL.Principal)],
+        [IDL.Nat32],
+        ['query'],
+      ),
     'ic_logs' : IDL.Func([IDL.Nat64], [Result_3], []),
     'mint_native_token' : IDL.Func([MintReason], [Result_2], []),
     'minter_eth_address' : IDL.Func([], [Result_2], []),
+    'on_evm_transaction_notification' : IDL.Func(
+        [IDL.Opt(TransactionReceipt), IDL.Vec(IDL.Nat8)],
+        [IDL.Opt(IDL.Null)],
+        [],
+      ),
     'register_evm_bft_bridge' : IDL.Func([IDL.Text], [Result_4], []),
     'register_external_evm' : IDL.Func([IDL.Text, IDL.Text], [Result_4], []),
     'set_evm_principal' : IDL.Func([IDL.Principal], [Result_4], []),
     'set_logger_filter' : IDL.Func([IDL.Text], [Result_4], []),
+    'set_operation_pricing' : IDL.Func([OperationPricing], [Result_4], []),
     'set_owner' : IDL.Func([IDL.Principal], [Result_4], []),
   });
 };
