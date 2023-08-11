@@ -1,9 +1,8 @@
-import Web3 from "web3";
-import { TransactionReceipt } from "web3-core";
-import { Address, Id256, SignedMintOrder } from "../types/common";
+import { Address, Id256, SignedMintOrder } from "../validation";
 import { MintReason } from "../ic/idl/minter/minter.did";
 import { Principal } from "@dfinity/principal";
-import _, { IcConnector } from "../ic";
+import { IcConnector } from "../ic";
+import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
 
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
@@ -41,7 +40,8 @@ export interface ICEVMBridgeIface {
 export interface chainManagerIface {
   minterCanister: string;
   Ic: IcConnector;
-  w3: Web3;
+  signer: Signer;
+  provider: Provider;
 
   check_erc20_balance: (token: Address) => Promise<number>;
   get_bft_bridge_contract: () => Promise<Address | undefined>;
@@ -50,9 +50,9 @@ export interface chainManagerIface {
   get_wrapped_token_address: (fromToken: Id256) => Promise<Address | undefined>;
 
   burn_icrc2_tokens: (
-    wrapped_token: Address,
+    token: Principal,
     amount: number
-  ) => SignedMintOrder;
+  ) => Promise<SignedMintOrder>;
 
   get_chain_id: () => Promise<number>;
 

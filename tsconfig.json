@@ -8,6 +8,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
@@ -18,6 +19,6 @@
     "types": ["jest"]
   },
   "exclude": [
-    "src/ic",
+    "src/ic"
   ]
 }

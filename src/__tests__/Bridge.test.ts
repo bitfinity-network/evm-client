@@ -1,9 +1,9 @@
-import { Chain } from "../bridge-clients/chain";
+import { Chain } from "../bridge/chain";
 import { IcConnector } from "../ic";
-import { Address, AddressWithChainID, Id256Factory } from "../types/common";
+import { Address, AddressWithChainID, Id256Factory } from "../validation";
 import ethers, { Signer } from "ethers";
 import { Principal } from "@dfinity/principal";
-import { connectToWallet, getIdentity, mintTesttIcrcToken } from "../base";
+import { connectToWallet, getIdentity, mintTesttIcrcToken } from "./utils";
 import canisterIds from "../ic/canister_ids.json";
 import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
 jest.setTimeout(30000);
@@ -25,7 +25,7 @@ describe("Bridge class", () => {
     const { provider, wallet } = await connectToWallet();
     console.log("provider", provider);
     console.log("signer", wallet);
-    bridge = new Chain(MINTER_CANISTER, Ic, wallet);
+    bridge = new Chain(MINTER_CANISTER, Ic, wallet, provider);
   });
 
   afterEach(() => {
@@ -55,22 +55,9 @@ describe("Bridge class", () => {
       const buf = Id256Factory.fromPrincipal(
         Principal.fromText(sampleTokenPrincipal)
       );
-      const approveArgs: ApproveArgs = {
-        fee: [],
-        memo: [],
-        from_subaccount: [],
-        created_at_time: [],
-        amount: BigInt(100000),
-        expected_allowance: [],
-        expires_at: [],
-        spender: {
-          owner: Principal.fromText(canisterIds.spender.local),
-          subaccount: [],
-        },
-      };
-      const result = await bridge.burnIcrcToken(
-        approveArgs,
-        Principal.fromText(canisterIds.token.local)
+      const result = await bridge.burn_icrc2_tokens(
+        Principal.fromText(canisterIds.spender.local),
+        100
       );
 
       expect(result).toEqual(expect.any(Address));

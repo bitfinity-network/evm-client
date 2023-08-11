@@ -1,29 +1,27 @@
-// @ts-nocheck
 import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
-import { Signer, ethers, Provider } from "ethers";
+import { Signer, ethers, Provider , TransactionReceipt} from "ethers";
 
-import { Address, Id256, SignedMintOrder } from "../types/common";
+import { Address, Id256, SignedMintOrder } from "../validation";
 import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
-import { TransactionReceipt } from "web3-core";
 import { AbiItem } from "web3-utils";
-import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
+import { ApproveArgs, Tokens } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 
 export class Chain implements chainManagerIface {
-  private minterCanister: string;
-  private Ic: IcConnector;
-  private signer: Signer;
-  private provider: Provider;
+  public minterCanister: string;
+  public Ic: IcConnector;
+  public signer: Signer;
+  public provider: Provider;
 
-  constructor(minterCanister: string, Ic: IcConnector, signer: Signer) {
+  constructor(minterCanister: string, Ic: IcConnector, signer: Signer, provider: Provider) {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
     this.signer = signer;
-    this.provider = signer.provider;
+    this.provider = provider;
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
@@ -63,41 +61,63 @@ export class Chain implements chainManagerIface {
     name: string,
     symbol: string,
     fromToken: Id256
-  ): Promise<Address | undefined> {
-    try {
-      const bridge = await this.get_bft_bridge_contract();
-      if (bridge) {
+  ): Promise<Address> {
+        const bridge = await this.get_bft_bridge_contract();
         const contract = new ethers.Contract(
-          bridge?.getAddress(),
+          bridge!?.getAddress(),
           BftBridgeABI,
           this.signer
         );
-        // let signer = await this.provider.getSigner()
         await contract.deployERC20(name, symbol, fromToken);
-        const wrappedAddress = await this.get_wrapped_token_address(fromToken);
-        if (wrappedAddress) {
-          return new Address(wrappedAddress);
-        }
-      }
-      return undefined;
-    } catch (error) {
-      console.error("error", error);
-    }
-  }
+        const tokenAddress = await this.get_wrapped_token_address(fromToken);
+        return tokenAddress!;
 
-  public async burnIcrcToken(
-    ApproveArgs: ApproveArgs,
-    tokenPrincipal: Principal
-  ) {
-    try {
-      const result = await this.Ic.actor<IcrcService>(
-        tokenPrincipal.toText(),
-        IcrcIDL
-      ).icrc2_approve(ApproveArgs);
-      console.log("burn result", result);
-    } catch (error) {
-      console.log("burn error", error);
+      }
+    
+
+  public async burn_icrc2_tokens(
+    token: Principal,
+    amount: number
+  ): Promise<SignedMintOrder> {
+
+    const fee = 100; //todo get the actual fee
+
+    const approve: ApproveArgs = {
+      fee: [],
+      memo: [],
+      from_subaccount: [],
+      created_at_time: [],
+      amount: BigInt(amount + fee),
+      expected_allowance: [],
+      expires_at: [],
+      spender: {
+        owner: Principal.fromText(this.minterCanister),
+        subaccount: []
+      }
     }
+    await this.Ic.actor<IcrcService>(
+      token.toText(),
+      IcrcIDL
+    ).icrc2_approve(approve);
+    const { chainId } = await this.provider.getNetwork();
+    const mintReason: MintReason =  {
+      Icrc1Burn: {
+        recipient_chain_id: Number(chainId),
+        icrc1_token_principal: await this.Ic.getAgent().getPrincipal(),
+        recipient_token_address: await this.signer.getAddress(),
+        from_subaccount: [],
+        recipient_address: await this.signer.getAddress(),
+        amount: String(amount)
+      }
+    };
+    const result = await this.Ic.actor<MinterService>(
+      this.minterCanister,
+      MinterIDL
+    ).create_erc_20_mint_order(mintReason);
+    if ('Ok' in result){
+      return ethers.getBytes(new Uint8Array(result.Ok));
+    }
+    throw Error("Impossible")
   }
 
   public async createMintOrder(
@@ -112,7 +132,7 @@ export class Chain implements chainManagerIface {
       console.log(result.Err);
       throw result;
     }
-    return result.Ok;
+    return ethers.getBytes(new Uint8Array(result.Ok));
   }
 
   public async burn_erc_20_tokens(
@@ -124,13 +144,13 @@ export class Chain implements chainManagerIface {
   ): Promise<TxHash | undefined> {
     const bridge = await this.get_bft_bridge_contract();
     const bftContract = new ethers.Contract(
-      bridge?.getAddress(),
+      bridge!?.getAddress(),
       BftBridgeABI,
       this.signer
     );
     const WrappedTokenContract = new ethers.Contract(
       from_token.getAddress(),
-      WrappedTokenABI as AbiItem[],
+      WrappedTokenABI,
       this.signer
     );
     await WrappedTokenContract.approve(BftBridgeABI, amount);
@@ -150,30 +170,19 @@ export class Chain implements chainManagerIface {
   }
 
   public async burn_native_tokens(
-    provider: Web3,
     dstToken: Id256,
     recipient: Id256,
     dstChainId: number,
     amount: number
   ): Promise<TxHash | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
-    const bridge = new this.provider.eth.Contract(
-      BftBridgeABI as AbiItem[],
-      bridgeAddress?.getAddress()
+    const bridge = new ethers.Contract(
+      bridgeAddress!?.getAddress(),
+      BftBridgeABI,
+      this.signer
     );
-    const WrappedToken = new this.provider.eth.Contract(
-      WrappedTokenABI as AbiItem[],
-      from_token.getAddress()
-    );
-    await WrappedToken.methods.approve(BftBridgeABI, amount).send();
 
-    //TODO
-    //TODO!
-    //TODO: Issue the transaction and send it
-
-    const result = await bridge.methods
-      .burn(amount, from_token, recipient, dstToken, dstChainId)
-      .on();
+    const result = await bridge.burn(recipient, dstToken, dstChainId, { value: ethers.parseEther(String(amount)) });
     if (result && result.transactionHash) {
       return result.transactionHash;
     } else {
@@ -181,42 +190,16 @@ export class Chain implements chainManagerIface {
     }
   }
 
-  public async burn_native_tokens(
-    dstToken: Id256,
-    recipient: Id256,
-    dstChainId: number,
-    amount: number
-  ): Promise<TxHash | undefined> {
-    const bridgeAddress = await this.get_bft_bridge_contract();
-    const bridge = new this.provider.eth.Contract(
-      BftBridgeABI as AbiItem[],
-      bridgeAddress?.getAddress()
-    );
-
-    //TODO
-    //TODO!
-    //TODO: Issue the transaction and send it
-    //TODO: Issue the transaction and send it
-
-    const result = await bridge.methods
-      .burn(recipient, dstToken, dstChainId)
-      .send({ amount });
-
-    if (result && result.transactionHash) {
-      return result.transactionHash;
-    } else {
-      throw Error("Transaction not successful");
-    }
-  }
 
   async mintOrder(encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
-    const bridge = await this.get_bft_bridge_contract();
-    const encodedOrderBytes = Web3.utils.bytesToHex([...encodedOrder]);
-    const contract = new this.provider.eth.Contract(
-      BftBridgeABI as AbiItem[],
-      bridge?.getAddress()
+    const bridgeAddress = await this.get_bft_bridge_contract();
+    const encodedOrderBytes = ethers.hexlify(encodedOrder);
+    const bridge = new ethers.Contract(
+      bridgeAddress!?.getAddress(),
+      BftBridgeABI,
+      this.signer
     );
-    return await contract.methods.mint(encodedOrderBytes).send();
+    return await bridge.mint(encodedOrderBytes);
   }
 
   public async mint_erc_20_tokens(
@@ -242,35 +225,25 @@ export class Chain implements chainManagerIface {
     ).mint_native_token(reason);
     if ("Ok" in result) {
       const txHash = result.Ok;
-      return this.provider.eth.getTransactionReceipt(txHash);
-    } else {
-      throw Error("Not found");
+      const receipt: any = this.provider.getTransactionReceipt(txHash);
+      return <TransactionReceipt>receipt;
     }
+    throw Error("Not found");
+
+  }
+  public async get_chain_id(): Promise<number> {
+    const { chainId } = await this.provider.getNetwork();
+    return Number(chainId);
   }
 
-  burn_icrc2_tokens: (
-    wrapped_token: Address,
-    amount: number
-  ) => SignedMintOrder;
-  check_erc20_balance: (token: Address) => Promise<number>;
-  register_bft_bridge_contract: () => Promise<Address>;
-  create_bft_bridge_contract: () => Promise<Address>;
+  public check_erc20_balance(token: Address): Promise<number>{
 
-  swap_tokens: (
-    from_provider,
-    to_provider,
-    from_token: Id256,
-    to_token: Id256,
-    amount: number
-  ) => Promise<SwapResult>;
+  }
+  register_bft_bridge_contract():Promise<Address>{
 
-  swap_tokens: (
-    from_provider,
-    to_provider,
-    from_token: Id256,
-    to_token: Id256,
-    amount: number
-  ) => Promise<SwapResult>;
+  }
+  create_bft_bridge_contract(): Promise<Address>{}
+
 }
 
 /*   public async transferIcrcTokens(icProvider, {fee = [], memo = [], fromSubaccount = [], createdAtTime =[], amount, expectedAllowance, expiresAt, spender}: transferIcrcTokensParams) {

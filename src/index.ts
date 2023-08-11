@@ -1,1 +1,1 @@
-export * from "./bridge-clients/chain"
+export * from "./bridge/chain"

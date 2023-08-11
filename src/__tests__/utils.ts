@@ -5,7 +5,7 @@ import { Actor, ActorMethod, ActorSubclass, Identity } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { createAgent } from "@dfinity/utils";
 import { IDL } from "@dfinity/candid";
-import { IcrcIDL, IcrcService } from "./ic";
+import { IcrcIDL, IcrcService } from "../ic";
 
 import fs from "fs";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
