@@ -9,16 +9,17 @@ import { IcrcIDL, IcrcService } from "../ic";
 
 import fs from "fs";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
+import {
+  DEFAULT_IDENTITY,
+  IC_HOST,
+  LOCAL_TEST_SEED_PHRASE,
+  RPC_URL,
+} from "../constants";
 const { exec, spawn } = require("child_process");
 
 const hdkey = require("hdkey");
 const pemfile = require("pem-file");
 require("dotenv").config();
-
-const RPC_URL = "http://127.0.0.1:8545";
-const IC_HOST = process.env.IC_HOST || "http://127.0.0.1:4943/";
-const LOCAL_TEST_SEED_PHRASE = process.env.LOCAL_TEST_SEED_PHRASE || "";
-const DEFAULT_IDENTITY = process.env.PEM_FILE_PATH || "";
 
 export const connectToWallet = async () => {
   const provider = new ethers.JsonRpcProvider(RPC_URL, {

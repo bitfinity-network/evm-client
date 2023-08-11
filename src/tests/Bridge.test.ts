@@ -1,34 +1,20 @@
+import { setupTests } from "./test-setup";
 import { Chain } from "../bridge/chain";
-import { IcConnector } from "../ic";
 import { Address, AddressWithChainID, Id256Factory } from "../validation";
-import ethers, { Signer } from "ethers";
 import { Principal } from "@dfinity/principal";
-import { connectToWallet, getIdentity, mintTesttIcrcToken } from "./utils";
 import canisterIds from "../ic/canister_ids.json";
-import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
+import { TEST_TOKEN_PRINCIPAL } from "../constants";
 jest.setTimeout(30000);
-
-const IC_HOST = "http://127.0.0.1:8080/";
-const MINTER_CANISTER = "be2us-64aaa-aaaaa-qaabq-cai";
-const sampleTokenPrincipal = "b77ix-eeaaa-aaaaa-qaada-cai";
 
 describe("Bridge class", () => {
   let bridge: Chain;
-  let Ic: IcConnector;
 
-  beforeEach(async () => {
-    await mintTesttIcrcToken();
-
-    const identity = await getIdentity();
-    console.log("identit", identity);
-    Ic = new IcConnector({ host: IC_HOST, identity });
-    const { provider, wallet } = await connectToWallet();
-    console.log("provider", provider);
-    console.log("signer", wallet);
-    bridge = new Chain(MINTER_CANISTER, Ic, wallet, provider);
+  beforeAll(async () => {
+    const { bridge: initializedBridge } = await setupTests();
+    bridge = initializedBridge;
   });
 
-  afterEach(() => {
+  afterAll(() => {
     jest.clearAllMocks();
   });
 
@@ -43,7 +29,7 @@ describe("Bridge class", () => {
   describe("deploy_bft_wrapped_token icrc", () => {
     it("should return the wrapped token address", async () => {
       const buf = Id256Factory.fromPrincipal(
-        Principal.fromText(sampleTokenPrincipal)
+        Principal.fromText(TEST_TOKEN_PRINCIPAL)
       );
       const result = await bridge.deploy_bft_wrapped_token("Token", "TKN", buf);
       expect(result).toEqual(expect.any(Address));
@@ -53,7 +39,7 @@ describe("Bridge class", () => {
   describe("burn ", () => {
     it("should return Ok result", async () => {
       const buf = Id256Factory.fromPrincipal(
-        Principal.fromText(sampleTokenPrincipal)
+        Principal.fromText(TEST_TOKEN_PRINCIPAL)
       );
       const result = await bridge.burn_icrc2_tokens(
         Principal.fromText(canisterIds.spender.local),
