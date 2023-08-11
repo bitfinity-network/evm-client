@@ -2,7 +2,7 @@ import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
-import { Signer, ethers, Provider , TransactionReceipt} from "ethers";
+import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
 
 import { Address, Id256, SignedMintOrder } from "../validation";
 import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
@@ -17,7 +17,12 @@ export class Chain implements chainManagerIface {
   public signer: Signer;
   public provider: Provider;
 
-  constructor(minterCanister: string, Ic: IcConnector, signer: Signer, provider: Provider) {
+  constructor(
+    minterCanister: string,
+    Ic: IcConnector,
+    signer: Signer,
+    provider: Provider
+  ) {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
     this.signer = signer;
@@ -62,24 +67,21 @@ export class Chain implements chainManagerIface {
     symbol: string,
     fromToken: Id256
   ): Promise<Address> {
-        const bridge = await this.get_bft_bridge_contract();
-        const contract = new ethers.Contract(
-          bridge!?.getAddress(),
-          BftBridgeABI,
-          this.signer
-        );
-        await contract.deployERC20(name, symbol, fromToken);
-        const tokenAddress = await this.get_wrapped_token_address(fromToken);
-        return tokenAddress!;
-
-      }
-    
+    const bridge = await this.get_bft_bridge_contract();
+    const contract = new ethers.Contract(
+      bridge!?.getAddress(),
+      BftBridgeABI,
+      this.signer
+    );
+    await contract.deployERC20(name, symbol, fromToken);
+    const tokenAddress = await this.get_wrapped_token_address(fromToken);
+    return tokenAddress!;
+  }
 
   public async burn_icrc2_tokens(
     token: Principal,
     amount: number
   ): Promise<SignedMintOrder> {
-
     const fee = 100; //todo get the actual fee
 
     const approve: ApproveArgs = {
@@ -92,32 +94,31 @@ export class Chain implements chainManagerIface {
       expires_at: [],
       spender: {
         owner: Principal.fromText(this.minterCanister),
-        subaccount: []
-      }
-    }
-    await this.Ic.actor<IcrcService>(
-      token.toText(),
-      IcrcIDL
-    ).icrc2_approve(approve);
+        subaccount: [],
+      },
+    };
+    await this.Ic.actor<IcrcService>(token.toText(), IcrcIDL).icrc2_approve(
+      approve
+    );
     const { chainId } = await this.provider.getNetwork();
-    const mintReason: MintReason =  {
+    const mintReason: MintReason = {
       Icrc1Burn: {
         recipient_chain_id: Number(chainId),
         icrc1_token_principal: await this.Ic.getAgent().getPrincipal(),
         recipient_token_address: await this.signer.getAddress(),
         from_subaccount: [],
         recipient_address: await this.signer.getAddress(),
-        amount: String(amount)
-      }
+        amount: String(amount),
+      },
     };
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
       MinterIDL
     ).create_erc_20_mint_order(mintReason);
-    if ('Ok' in result){
+    if ("Ok" in result) {
       return ethers.getBytes(new Uint8Array(result.Ok));
     }
-    throw Error("Impossible")
+    throw Error("Impossible");
   }
 
   public async createMintOrder(
@@ -182,14 +183,15 @@ export class Chain implements chainManagerIface {
       this.signer
     );
 
-    const result = await bridge.burn(recipient, dstToken, dstChainId, { value: ethers.parseEther(String(amount)) });
+    const result = await bridge.burn(recipient, dstToken, dstChainId, {
+      value: ethers.parseEther(String(amount)),
+    });
     if (result && result.transactionHash) {
       return result.transactionHash;
     } else {
       throw Error("Transaction not successful");
     }
   }
-
 
   async mintOrder(encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
     const bridgeAddress = await this.get_bft_bridge_contract();
@@ -229,21 +231,15 @@ export class Chain implements chainManagerIface {
       return <TransactionReceipt>receipt;
     }
     throw Error("Not found");
-
   }
   public async get_chain_id(): Promise<number> {
     const { chainId } = await this.provider.getNetwork();
     return Number(chainId);
   }
 
-  public check_erc20_balance(token: Address): Promise<number>{
-
-  }
-  register_bft_bridge_contract():Promise<Address>{
-
-  }
-  create_bft_bridge_contract(): Promise<Address>{}
-
+  public check_erc20_balance(token: Address): Promise<number> {}
+  register_bft_bridge_contract(): Promise<Address> {}
+  create_bft_bridge_contract(): Promise<Address> {}
 }
 
 /*   public async transferIcrcTokens(icProvider, {fee = [], memo = [], fromSubaccount = [], createdAtTime =[], amount, expectedAllowance, expiresAt, spender}: transferIcrcTokensParams) {
