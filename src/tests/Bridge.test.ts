@@ -42,7 +42,7 @@ describe("Bridge class", () => {
         Principal.fromText(TEST_TOKEN_PRINCIPAL)
       );
       const result = await bridge.burn_icrc2_tokens(
-        Principal.fromText(canisterIds.spender.local),
+        Principal.fromText(canisterIds.token.local),
         100
       );
 
