@@ -4,7 +4,7 @@ import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
 import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
 
-import { Address, Id256, SignedMintOrder } from "../validation";
+import { Address, Id256, Id256Factory, SignedMintOrder } from "../validation";
 import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
 import { AbiItem } from "web3-utils";
 import { ApproveArgs, Tokens } from "../ic/idl/icrc/icrc.did";
@@ -58,7 +58,7 @@ export class Chain implements chainManagerIface {
       if (new Address(wrappedToken).isZero()) {
         return undefined;
       }
-      return wrappedToken;
+      return new Address(wrappedToken);
     }
   }
 
@@ -78,12 +78,24 @@ export class Chain implements chainManagerIface {
     return tokenAddress!;
   }
 
+  public async get_icrc_token_fee(
+    principal: Principal
+  ): Promise<number | undefined> {
+    const result = await this.Ic.actor<IcrcService>(
+      principal,
+      IcrcIDL
+    ).icrc1_fee();
+    if (result) {
+      return Number(result);
+    }
+    return undefined;
+  }
+
   public async burn_icrc2_tokens(
     token: Principal,
     amount: number
   ): Promise<SignedMintOrder> {
-    const fee = 100; //todo get the actual fee
-
+    const fee = (await this.get_icrc_token_fee(token)) || 100;
     const approve: ApproveArgs = {
       fee: [],
       memo: [],
@@ -97,26 +109,35 @@ export class Chain implements chainManagerIface {
         subaccount: [],
       },
     };
-    await this.Ic.actor<IcrcService>(token.toText(), IcrcIDL).icrc2_approve(
-      approve
-    );
+    const approvalResult = await this.Ic.actor<IcrcService>(
+      token.toText(),
+      IcrcIDL
+    ).icrc2_approve(approve);
     const { chainId } = await this.provider.getNetwork();
-    const mintReason: MintReason = {
-      Icrc1Burn: {
-        recipient_chain_id: Number(chainId),
-        icrc1_token_principal: await this.Ic.getAgent().getPrincipal(),
-        recipient_token_address: await this.signer.getAddress(),
-        from_subaccount: [],
-        recipient_address: await this.signer.getAddress(),
-        amount: String(amount),
-      },
-    };
-    const result = await this.Ic.actor<MinterService>(
-      this.minterCanister,
-      MinterIDL
-    ).create_erc_20_mint_order(mintReason);
-    if ("Ok" in result) {
-      return ethers.getBytes(new Uint8Array(result.Ok));
+
+    const tokenAddress = await this.get_wrapped_token_address(
+      Id256Factory.fromPrincipal(token)
+    );
+    console.log("tokenAddress", tokenAddress);
+    if (tokenAddress) {
+      const mintReason: MintReason = {
+        Icrc1Burn: {
+          recipient_chain_id: Number(chainId),
+          icrc1_token_principal: token,
+          recipient_token_address: tokenAddress.getAddress(),
+          from_subaccount: [],
+          recipient_address: await this.signer.getAddress(),
+          amount: String(amount),
+        },
+      };
+      const result = await this.Ic.actor<MinterService>(
+        this.minterCanister,
+        MinterIDL
+      ).create_erc_20_mint_order(mintReason);
+      console.log("result", result);
+      if ("Ok" in result) {
+        return ethers.getBytes(new Uint8Array(result.Ok));
+      }
     }
     throw Error("Impossible");
   }
@@ -237,8 +258,15 @@ export class Chain implements chainManagerIface {
     return Number(chainId);
   }
 
-  public check_erc20_balance(token: Address): Promise<number> {}
+  public async check_erc20_balance(token: Address): Promise<number> {
+    return 0;
+  }
+
+  // @ts-ignore
+  // TODO:
   register_bft_bridge_contract(): Promise<Address> {}
+
+  // @ts-ignore
   create_bft_bridge_contract(): Promise<Address> {}
 }
 

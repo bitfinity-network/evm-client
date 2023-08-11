@@ -43,7 +43,7 @@ describe("Bridge class", () => {
       );
       const result = await bridge.burn_icrc2_tokens(
         Principal.fromText(canisterIds.token.local),
-        100
+        10000
       );
 
       expect(result).toEqual(expect.any(Address));
