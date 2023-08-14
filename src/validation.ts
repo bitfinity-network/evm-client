@@ -1,19 +1,17 @@
 import { isAddress, isNullish } from "web3-validator";
 import { Principal } from "@dfinity/principal";
-import {Buffer} from "buffer";
+import { Buffer } from "buffer";
+import ethers, { Signer } from "ethers";
 
-export type Id256 = Buffer
-export type SignedMintOrder = Uint8Array | number[];
-
+export type Id256 = Buffer;
+export type SignedMintOrder = ethers.BytesLike; //Uint8Array | number[];
 
 export class Id256Factory {
-
-
   chainIdFromId256(buffer: Id256): number {
-      if (buffer.readUIntBE(0,1) == 1) {
-        throw Error("Needs an IC Buffer");
-      }; 
-      return buffer.readUIntBE(1, 4); 
+    if (buffer.readUIntBE(0, 1) == 1) {
+      throw Error("Needs an IC Buffer");
+    }
+    return buffer.readUIntBE(1, 4);
   }
 
   static fromPrincipal(principal: Principal): Id256 {
@@ -26,9 +24,17 @@ export class Id256Factory {
     buf.set(prinBuffer, 2);
     return buf;
   }
-  
-  static fromAddress(input: AddressWithChainID): Id256 {
 
+  static principalToBytes32(principal: Principal): Uint8Array {
+    var oldBuffer = principal.toUint8Array();
+
+    var newBuffer = new ArrayBuffer(32);
+    var buf = new Uint8Array(newBuffer);
+    buf.set(oldBuffer);
+    return buf;
+  }
+
+  static fromAddress(input: AddressWithChainID): Id256 {
     const buf = Buffer.alloc(32); // Create a buffer with 32 bytes
     // Set the first byte to EVM_ADDRESS_MARK (0x01 in this example)
     buf[0] = 0x01;
@@ -55,7 +61,7 @@ export class Id256Factory {
 
 export class Address {
   private address: string;
-  
+
   public getAddress(): string {
     return this.address;
   }
@@ -78,11 +84,9 @@ export class Address {
   }
 }
 
-
-
-export class AddressWithChainID  extends Address{
+export class AddressWithChainID extends Address {
   private chainID: Number;
-  
+
   public getChainID(): Number {
     return this.chainID;
   }
@@ -90,6 +94,5 @@ export class AddressWithChainID  extends Address{
   constructor(address: string, chainID: Number) {
     super(address);
     this.chainID = chainID;
-
   }
 }

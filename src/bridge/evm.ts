@@ -11,7 +11,7 @@ import {
   Address,
   Id256,
   SignedMintOrder
-} from "../types/common";
+} from "../validation";
 import { Principal} from "@dfinity/principal";
 import {TransactionReceipt} from 'web3-core'
 import {AbiItem} from 'web3-utils'
