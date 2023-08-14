@@ -30,7 +30,18 @@ export class Id256Factory {
 
     var newBuffer = new ArrayBuffer(32);
     var buf = new Uint8Array(newBuffer);
-    buf.set(oldBuffer);
+    buf[0] = oldBuffer.length;
+    buf.set(oldBuffer, 1);
+    return buf;
+  }
+
+  static principalToBytes(principal: Principal): Uint8Array {
+    var oldBuffer = principal.toUint8Array();
+
+    var newBuffer = new ArrayBuffer(oldBuffer.length + 1);
+    var buf = new Uint8Array(newBuffer);
+    buf[0] = oldBuffer.length;
+    buf.set(oldBuffer, 1);
     return buf;
   }
 

@@ -17,7 +17,7 @@ import {
   SwapResult,
   TxHash,
 } from "./Interfaces";
-import { AbiItem } from "web3-utils";
+import { AbiItem, numberToHex } from "web3-utils";
 import { ApproveArgs, Tokens } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
@@ -146,8 +146,8 @@ export class Chain implements chainManagerIface {
       data: notification,
     };
     const result = await this.signer.sendTransaction(transaction);
-    console.log("reciept", result);
-    const receipt = await this.provider.getTransactionReceipt(result.hash);
+    console.log("result", result);
+    const receipt = await result.wait();
     console.log("reciept", receipt);
     console.log("reciept");
   }
@@ -156,13 +156,13 @@ export class Chain implements chainManagerIface {
     token: Principal,
     amount: number
   ): Promise<SignedMintOrder> {
-    const fee = (await this.get_icrc_token_fee(token)) || 100;
+    const fee = await this.get_icrc_token_fee(token);
     const approve: ApproveArgs = {
       fee: [],
       memo: [],
       from_subaccount: [],
       created_at_time: [],
-      amount: BigInt(amount + fee),
+      amount: BigInt(amount + fee!),
       expected_allowance: [],
       expires_at: [],
       spender: {
@@ -170,25 +170,28 @@ export class Chain implements chainManagerIface {
         subaccount: [],
       },
     };
+    console.log("approve args", approve);
     const approvalResult = await this.Ic.actor<IcrcService>(
       token.toText(),
       IcrcIDL
     ).icrc2_approve(approve);
+    console.log("approvalResult", approvalResult);
+
     const { chainId } = await this.provider.getNetwork();
     await this.add_operation_points();
 
     const tokenAddress = await this.get_wrapped_token_address(
       Id256Factory.fromPrincipal(token)
     );
+    console.log("tokenAddress", tokenAddress);
     if (tokenAddress) {
       const mintReason: MintReason = {
         Icrc1Burn: {
           recipient_chain_id: Number(chainId),
           icrc1_token_principal: token,
-          recipient_token_address: tokenAddress.getAddress(),
           from_subaccount: [],
           recipient_address: await this.signer.getAddress(),
-          amount: String(amount),
+          amount: numberToHex(amount),
         },
       };
       console.log("mintReason", mintReason);
