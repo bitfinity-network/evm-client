@@ -1,5 +1,7 @@
 import caninsterIds from "./ic/canister_ids.json";
-export const RPC_URL = process.env.PRC_URL || "http://127.0.0.1:8545";
+require("dotenv").config();
+
+export const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 export const IC_HOST = process.env.IC_HOST || "http://127.0.0.1:8000/";
 export const LOCAL_TEST_SEED_PHRASE = process.env.LOCAL_TEST_SEED_PHRASE || "";
 export const DEFAULT_IDENTITY = process.env.PEM_FILE_PATH || "";

@@ -19,7 +19,6 @@ const { exec, spawn } = require("child_process");
 
 const hdkey = require("hdkey");
 const pemfile = require("pem-file");
-require("dotenv").config();
 
 export const connectToWallet = async () => {
   const provider = new ethers.JsonRpcProvider(RPC_URL, {
