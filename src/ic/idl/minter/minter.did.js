@@ -83,6 +83,7 @@ export const idlFactory = ({ IDL }) => {
     'Icrc1Burn' : IDL.Record({
       'recipient_chain_id' : IDL.Nat32,
       'icrc1_token_principal' : IDL.Principal,
+      'recipient_token_address' : IDL.Text,
       'from_subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
       'recipient_address' : IDL.Text,
       'amount' : IDL.Text,

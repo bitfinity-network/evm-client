@@ -46,7 +46,7 @@ describe("Bridge class", () => {
         1000000
       );
 
-      expect(result).toEqual(expect.any(Address));
+      expect(result).toEqual(expect.any(Uint8Array));
     });
   });
 });

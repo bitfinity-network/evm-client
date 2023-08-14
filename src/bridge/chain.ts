@@ -135,7 +135,7 @@ export class Chain implements chainManagerIface {
     const gasPrice = (await this.provider.getFeeData()).gasPrice;
     const { chainId } = await this.provider.getNetwork();
 
-    let transaction = {
+    let transactionArgs = {
       from: userAddress,
       to: userAddress,
       gasLimit: BigInt(30000),
@@ -145,9 +145,9 @@ export class Chain implements chainManagerIface {
       chainId,
       data: notification,
     };
-    const result = await this.signer.sendTransaction(transaction);
-    console.log("result", result);
-    const receipt = await result.wait();
+    const tx = await this.signer.sendTransaction(transactionArgs);
+    console.log("result", tx);
+    const receipt = await tx.wait();
     console.log("reciept", receipt);
     console.log("reciept");
   }
@@ -189,6 +189,7 @@ export class Chain implements chainManagerIface {
         Icrc1Burn: {
           recipient_chain_id: Number(chainId),
           icrc1_token_principal: token,
+          recipient_token_address: tokenAddress.getAddress(),
           from_subaccount: [],
           recipient_address: await this.signer.getAddress(),
           amount: numberToHex(amount),
@@ -201,6 +202,7 @@ export class Chain implements chainManagerIface {
       ).create_erc_20_mint_order(mintReason);
       console.log("result", result);
       if ("Ok" in result) {
+        console.log(ethers.getBytes(new Uint8Array(result.Ok)));
         return ethers.getBytes(new Uint8Array(result.Ok));
       }
     }
