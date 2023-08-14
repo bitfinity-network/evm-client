@@ -4,10 +4,12 @@ import { Address, AddressWithChainID, Id256Factory } from "../validation";
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
 import { TEST_TOKEN_PRINCIPAL } from "../constants";
+import { ethers } from "ethers";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {
   let bridge: Chain;
+  let signedMintOrder: ethers.BytesLike;
 
   beforeAll(async () => {
     const { bridge: initializedBridge } = await setupTests();
@@ -36,7 +38,7 @@ describe("Bridge class", () => {
     });
   });
 
-  describe("burn ", () => {
+  describe("burn icrc tokens and create erc20 mint order", () => {
     it("should return Ok result", async () => {
       const buf = Id256Factory.fromPrincipal(
         Principal.fromText(TEST_TOKEN_PRINCIPAL)
@@ -45,8 +47,20 @@ describe("Bridge class", () => {
         Principal.fromText(canisterIds.token.local),
         1000000
       );
-
+      signedMintOrder = result;
       expect(result).toEqual(expect.any(Uint8Array));
+    });
+  });
+
+  describe("Mint ERC20 Token", () => {
+    it("should return Ok result", async () => {
+      const buf = Id256Factory.fromPrincipal(
+        Principal.fromText(TEST_TOKEN_PRINCIPAL)
+      );
+      console.log("signedMintOrder", signedMintOrder);
+      const result = await bridge.mintOrder(signedMintOrder);
+      console.log("mint result", result);
+      // expect(result).toEqual(expect.any(Uint8Array));
     });
   });
 });

@@ -2,7 +2,13 @@ import { Address, Id256, SignedMintOrder } from "../validation";
 import { MintReason } from "../ic/idl/minter/minter.did";
 import { Principal } from "@dfinity/principal";
 import { IcConnector } from "../ic";
-import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
+import {
+  Signer,
+  ethers,
+  Provider,
+  TransactionReceipt,
+  TransactionResponse,
+} from "ethers";
 
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
@@ -80,9 +86,11 @@ export interface chainManagerIface {
   mint_erc_20_tokens: (
     burn_tx_hash: TxHash,
     chain_id: number
-  ) => Promise<TransactionReceipt>;
+  ) => Promise<TransactionResponse | undefined>;
 
-  mintOrder: (encodedOrder: SignedMintOrder) => Promise<TransactionReceipt>;
+  mintOrder: (
+    encodedOrder: SignedMintOrder
+  ) => Promise<TransactionResponse | undefined>;
 
   mint_native_tokens: (reason: MintReason) => Promise<TransactionReceipt>;
 }

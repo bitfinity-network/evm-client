@@ -8,6 +8,7 @@ import {
   Provider,
   TransactionReceipt,
   Transaction,
+  TransactionResponse,
 } from "ethers";
 
 import { Address, Id256, Id256Factory, SignedMintOrder } from "../validation";
@@ -189,7 +190,6 @@ export class Chain implements chainManagerIface {
         Icrc1Burn: {
           recipient_chain_id: Number(chainId),
           icrc1_token_principal: token,
-          recipient_token_address: tokenAddress.getAddress(),
           from_subaccount: [],
           recipient_address: await this.signer.getAddress(),
           amount: numberToHex(amount),
@@ -281,7 +281,11 @@ export class Chain implements chainManagerIface {
     }
   }
 
-  async mintOrder(encodedOrder: SignedMintOrder): Promise<TransactionReceipt> {
+  async mintOrder(
+    encodedOrder: SignedMintOrder
+  ): Promise<TransactionResponse | undefined> {
+    const userAddress = await this.signer.getAddress();
+    const nonce = await this.provider.getTransactionCount(userAddress);
     const bridgeAddress = await this.get_bft_bridge_contract();
     const encodedOrderBytes = ethers.hexlify(encodedOrder);
     const bridge = new ethers.Contract(
@@ -289,13 +293,20 @@ export class Chain implements chainManagerIface {
       BftBridgeABI,
       this.signer
     );
-    return await bridge.mint(encodedOrderBytes);
+    const tx = await bridge.mint(encodedOrderBytes, { nonce });
+    console.log("mintTx", tx);
+    await tx.wait();
+    let txReceipt = await this.provider.getTransaction(tx.hash);
+    console.log("txReceipt", txReceipt);
+    if (txReceipt) {
+      return txReceipt;
+    }
   }
 
   public async mint_erc_20_tokens(
     burn_tx_hash: TxHash,
     burn_chain_id: number
-  ): Promise<TransactionReceipt> {
+  ): Promise<TransactionResponse | undefined> {
     const reason = {
       Erc20Burn: {
         burn_tx_hash,

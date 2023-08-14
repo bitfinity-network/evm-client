@@ -93,7 +93,6 @@ export type MintReason =
       Icrc1Burn: {
         recipient_chain_id: number;
         icrc1_token_principal: Principal;
-        recipient_token_address: string;
         from_subaccount: [] | [Uint8Array | number[]];
         recipient_address: string;
         amount: string;
