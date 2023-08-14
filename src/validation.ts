@@ -25,6 +25,15 @@ export class Id256Factory {
     return buf;
   }
 
+  static principalToBytes32(principal: Principal): Uint8Array {
+    var oldBuffer = principal.toUint8Array();
+
+    var newBuffer = new ArrayBuffer(32);
+    var buf = new Uint8Array(newBuffer);
+    buf.set(oldBuffer);
+    return buf;
+  }
+
   static fromAddress(input: AddressWithChainID): Id256 {
     const buf = Buffer.alloc(32); // Create a buffer with 32 bytes
     // Set the first byte to EVM_ADDRESS_MARK (0x01 in this example)

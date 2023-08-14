@@ -2,10 +2,21 @@ import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
-import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
+import {
+  Signer,
+  ethers,
+  Provider,
+  TransactionReceipt,
+  Transaction,
+} from "ethers";
 
 import { Address, Id256, Id256Factory, SignedMintOrder } from "../validation";
-import { chainManagerIface, SwapResult, TxHash } from "./Interfaces";
+import {
+  chainManagerIface,
+  NoficationIface,
+  SwapResult,
+  TxHash,
+} from "./Interfaces";
 import { AbiItem } from "web3-utils";
 import { ApproveArgs, Tokens } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
@@ -91,6 +102,56 @@ export class Chain implements chainManagerIface {
     return undefined;
   }
 
+  public async add_operation_points() {
+    const userPrincipal = this.Ic.getPrincipal();
+    const tx_hash = new Uint8Array(32);
+    console.log(
+      "minter canister principal",
+      Principal.fromText(this.minterCanister)
+    );
+    const receiver_canister = Id256Factory.principalToBytes32(
+      Principal.fromText(this.minterCanister)
+    );
+    console.log("receiver_canister", receiver_canister);
+    console.log("receiver_canister length", receiver_canister.length);
+    const user_data = userPrincipal?.toUint8Array();
+
+    let ABI = [
+      "function evm_canister_notification_needed(bytes32 tx_hash, bytes32 principal, bytes user_data)",
+    ];
+    let iface = new ethers.Interface(ABI);
+    const encodedData = iface.encodeFunctionData(
+      "evm_canister_notification_needed",
+      [tx_hash, receiver_canister, user_data]
+    );
+    console.log("encodedData", encodedData);
+
+    let notify_tx_hash = await this.send_notification_tx(encodedData);
+  }
+
+  async send_notification_tx(notification: string) {
+    const userAddress = await this.signer.getAddress();
+    const nonce = await this.provider.getTransactionCount(userAddress);
+    const gasPrice = (await this.provider.getFeeData()).gasPrice;
+    const { chainId } = await this.provider.getNetwork();
+
+    let transaction = {
+      from: userAddress,
+      to: userAddress,
+      gasLimit: BigInt(30000),
+      nonce,
+      gasPrice,
+      value: ethers.parseEther("0"),
+      chainId,
+      data: notification,
+    };
+    const result = await this.signer.sendTransaction(transaction);
+    console.log("reciept", result);
+    const receipt = await this.provider.getTransactionReceipt(result.hash);
+    console.log("reciept", receipt);
+    console.log("reciept");
+  }
+
   public async burn_icrc2_tokens(
     token: Principal,
     amount: number
@@ -114,11 +175,11 @@ export class Chain implements chainManagerIface {
       IcrcIDL
     ).icrc2_approve(approve);
     const { chainId } = await this.provider.getNetwork();
+    await this.add_operation_points();
 
     const tokenAddress = await this.get_wrapped_token_address(
       Id256Factory.fromPrincipal(token)
     );
-    console.log("tokenAddress", tokenAddress);
     if (tokenAddress) {
       const mintReason: MintReason = {
         Icrc1Burn: {
@@ -130,6 +191,7 @@ export class Chain implements chainManagerIface {
           amount: String(amount),
         },
       };
+      console.log("mintReason", mintReason);
       const result = await this.Ic.actor<MinterService>(
         this.minterCanister,
         MinterIDL

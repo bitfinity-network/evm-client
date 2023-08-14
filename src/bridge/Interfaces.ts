@@ -6,6 +6,12 @@ import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
 
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
+
+export interface NoficationIface {
+  about_tx?: string | null;
+  receiver_canister?: string;
+  user_data?: Uint8Array;
+}
 interface SuccessResult {
   burn_tx_hash: TxHash;
   mint_tx_hash: TxHash;
