@@ -149,8 +149,7 @@ export class Chain implements chainManagerIface {
     const tx = await this.signer.sendTransaction(transactionArgs);
     console.log("result", tx);
     const receipt = await tx.wait();
-    console.log("reciept", receipt);
-    console.log("reciept");
+    console.log("receipt", receipt);
   }
 
   public async burn_icrc2_tokens(
@@ -287,13 +286,13 @@ export class Chain implements chainManagerIface {
     const userAddress = await this.signer.getAddress();
     const nonce = await this.provider.getTransactionCount(userAddress);
     const bridgeAddress = await this.get_bft_bridge_contract();
-    const encodedOrderBytes = ethers.hexlify(encodedOrder);
     const bridge = new ethers.Contract(
       bridgeAddress!?.getAddress(),
       BftBridgeABI,
       this.signer
     );
-    const tx = await bridge.mint(encodedOrderBytes, { nonce });
+    console.log("encodedOrder.length", encodedOrder.length);
+    const tx = await bridge.mint(encodedOrder, { nonce });
     console.log("mintTx", tx);
     await tx.wait();
     let txReceipt = await this.provider.getTransaction(tx.hash);
