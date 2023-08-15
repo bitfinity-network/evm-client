@@ -195,15 +195,7 @@ export class Chain implements chainManagerIface {
         },
       };
       console.log("mintReason", mintReason);
-      const result = await this.Ic.actor<MinterService>(
-        this.minterCanister,
-        MinterIDL
-      ).create_erc_20_mint_order(mintReason);
-      console.log("result", result);
-      if ("Ok" in result) {
-        console.log(ethers.getBytes(new Uint8Array(result.Ok)));
-        return ethers.getBytes(new Uint8Array(result.Ok));
-      }
+      return await this.createMintOrder(mintReason);
     }
     throw Error("Impossible");
   }
@@ -216,9 +208,8 @@ export class Chain implements chainManagerIface {
       MinterIDL
     ).create_erc_20_mint_order(mintReason);
     if ("Err" in result) {
-      //TODO: THROW THIS as an ERROR AS WELL?
       console.log(result.Err);
-      throw result;
+      throw result.Err;
     }
     return ethers.getBytes(new Uint8Array(result.Ok));
   }
