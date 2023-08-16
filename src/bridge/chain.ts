@@ -91,7 +91,8 @@ export class Chain implements chainManagerIface {
       BftBridgeABI,
       this.signer
     );
-    await contract.deployERC20(name, symbol, fromToken);
+    const tx = await contract.deployERC20(name, symbol, fromToken);
+    await tx.wait();
     const tokenAddress = await this.get_wrapped_token_address(fromToken);
     return tokenAddress!;
   }
@@ -227,8 +228,6 @@ export class Chain implements chainManagerIface {
   ): Promise<TxHash | undefined> {
     const chainId = await this.get_chain_id();
     const recipient = await this.signer.getAddress();
-    const nonce = await this.provider.getTransactionCount(recipient);
-    console.log("nonce", nonce);
 
     const bridge = await this.get_bft_bridge_contract();
     const bftContract = new ethers.Contract(
@@ -243,20 +242,22 @@ export class Chain implements chainManagerIface {
     );
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
-      amount
+      amount,
+      { nonce: await this.get_nonce() }
     );
     await approveTx.wait();
 
-    const result = await bftContract.burn(
+    const tx = await bftContract.burn(
       amount,
       from_token.getAddress(),
       Id256Factory.fromAddress(new AddressWithChainID(recipient, chainId)),
       dstToken,
-      { nonce }
+      { nonce: await this.get_nonce() }
     );
-    console.log("burn", "burn result");
-    if (result && result.transactionHash) {
-      return result.transactionHash;
+    await tx.wait();
+    console.log("burn result", tx);
+    if (tx && tx.transactionHash) {
+      return tx.transactionHash;
     } else {
       throw Error("Transaction not successful");
     }
@@ -288,16 +289,21 @@ export class Chain implements chainManagerIface {
   async mintOrder(
     encodedOrder: SignedMintOrder
   ): Promise<TransactionResponse | undefined> {
+    const bridgeAddress = await this.get_bft_bridge_contract();
     const userAddress = await this.signer.getAddress();
     const nonce = await this.provider.getTransactionCount(userAddress);
-    const bridgeAddress = await this.get_bft_bridge_contract();
+
+    console.log("signer", userAddress);
     const bridge = new ethers.Contract(
       bridgeAddress!?.getAddress(),
       BftBridgeABI,
       this.signer
     );
-    console.log("encodedOrder.length", encodedOrder.length);
-    const tx = await bridge.mint(encodedOrder, { nonce });
+    console.log("encoded Order before", encodedOrder);
+    const encodedData = ethers.hexlify(encodedOrder);
+    console.log("encoded Order after", encodedData);
+
+    const tx = await bridge.mint(encodedData, { nonce });
     console.log("mintTx", tx);
     await tx.wait();
     let txReceipt = await this.provider.getTransaction(tx.hash);
@@ -343,6 +349,11 @@ export class Chain implements chainManagerIface {
 
   public async check_erc20_balance(token: Address): Promise<number> {
     return 0;
+  }
+
+  public async get_nonce(): Promise<number> {
+    const userAddress = await this.signer.getAddress();
+    return await this.provider.getTransactionCount(userAddress);
   }
 
   // @ts-ignore
