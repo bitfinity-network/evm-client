@@ -1,12 +1,11 @@
-import { ethers } from "ethers";
+import { Signer, ethers } from "ethers";
 import { mnemonicToSeed } from "bip39";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
 import { Actor, ActorMethod, ActorSubclass, Identity } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { createAgent } from "@dfinity/utils";
 import { IDL } from "@dfinity/candid";
-import { IcrcIDL, IcrcService } from "../ic";
-
+import erc20TokenAbi from "../abi/erc20Token.json";
 import fs from "fs";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
 import {
@@ -80,7 +79,6 @@ export const identityFromSeed = async (
   const addrnode = root.derive("m/44'/223'/0'/0/0");
 
   const id = Secp256k1KeyIdentity.fromSecretKey(addrnode.privateKey);
-  console.log("id principal", id.getPrincipal().toText());
   return id;
 };
 
@@ -121,4 +119,16 @@ export function decode(rawKey: string) {
   }
   let secretKey = Buffer.concat([buf.slice(16, 48), buf.slice(53, 85)]);
   return Ed25519KeyIdentity.fromSecretKey(secretKey);
+}
+
+export async function deployERC20Token(signer: Signer) {
+  // Deploy the ERC20 token contract
+  const ERC20TokenContractFactory = new ethers.ContractFactory(
+    erc20TokenAbi.abi,
+    erc20TokenAbi.bytecode,
+    signer
+  );
+  const contract = await ERC20TokenContractFactory.deploy();
+  await contract.waitForDeployment();
+  return await contract.getAddress();
 }

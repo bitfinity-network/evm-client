@@ -55,7 +55,6 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
-    console.log("provider", this.provider);
     const chainId = await this.get_chain_id();
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
@@ -100,7 +99,10 @@ export class Chain implements chainManagerIface {
         BftBridgeABI,
         this.signer
       );
-      const tx = await contract.deployERC20(name, symbol, fromToken);
+      const nonce = await this.get_nonce();
+      const tx = await contract.deployERC20(name, symbol, fromToken, {
+        nonce,
+      });
       await tx.wait();
       tokenAddress = await this.get_wrapped_token_address(fromToken);
     }
@@ -276,33 +278,29 @@ export class Chain implements chainManagerIface {
       WrappedTokenABI,
       this.signer
     );
-    const balanceOf = await WrappedTokenContract.balanceOf(
-      await this.signer.getAddress()
-    );
-    console.log("balance", balanceOf);
+    const userAddress = await this.signer.getAddress();
 
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
       String(amount),
       { nonce: await this.get_nonce() }
     );
-    const approvedTx = await approveTx.wait();
-    console.log("burn args", {
-      amount: Number(amount),
-      from_address: from_token.getAddress(),
-      recipient: Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
-      toToken: dstToken,
-    });
+    await approveTx.wait();
+
+    console.log("approvedTransfer", approveTx);
+
+    const recipient = chainId
+      ? Id256Factory.fromAddress(new AddressWithChainID(userAddress, chainId))
+      : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
 
     const tx = await bftContract.burn(
       Number(amount),
       from_token.getAddress(),
-      Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
-      0,
+      recipient,
+      chainId,
       {
         nonce: await this.get_nonce(),
         gasLimit: 200000,
-        //gasPrice: (await this.provider.getFeeData()).gasPrice,
       }
     );
     await tx.wait();
