@@ -71,11 +71,12 @@ describe("Bridge class", () => {
 
   describe("burn erc20 token", () => {
     it("should return Ok result", async () => {
-      const amountInWei = String(ethers.parseEther("1"));
+      const amountInWei = String(ethers.parseEther("0.1"));
+
       const result = await bridge.burn_erc_20_tokens(
         ercToken,
         tokenInId256,
-        amountInWei
+        Number(amountInWei)
       );
       console.log("burn erc20 result", result);
       //TODO: added expected test

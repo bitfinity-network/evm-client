@@ -240,7 +240,7 @@ export class Chain implements chainManagerIface {
   public async burn_erc_20_tokens(
     from_token: Address,
     dstToken: Id256,
-    amount: string
+    amount: number
   ): Promise<TxHash | undefined> {
     const chainId = await this.get_chain_id();
     const recipient = await this.signer.getAddress();
@@ -256,9 +256,14 @@ export class Chain implements chainManagerIface {
       WrappedTokenABI,
       this.signer
     );
+    const balanceOf = await WrappedTokenContract.balanceOf(
+      await this.signer.getAddress()
+    );
+    console.log("balance", balanceOf);
+
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
-      amount,
+      String(amount),
       { nonce: await this.get_nonce() }
     );
     const approvedTx = await approveTx.wait();
@@ -266,14 +271,14 @@ export class Chain implements chainManagerIface {
     let txReceipt = await this.provider.getTransaction(approveTx.hash);
     console.log("app txReceipt", txReceipt);
     console.log("burn args", {
-      amount,
+      amount: Number(amount),
       from_address: from_token.getAddress(),
       recipient: Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
       toToken: dstToken,
     });
 
     const tx = await bftContract.burn(
-      amount,
+      Number("1"),
       from_token.getAddress(),
       Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
       dstToken,
@@ -323,7 +328,6 @@ export class Chain implements chainManagerIface {
     const userAddress = await this.signer.getAddress();
     const nonce = await this.get_nonce();
 
-    console.log("signer", userAddress);
     const bridge = new ethers.Contract(
       bridgeAddress!?.getAddress(),
       BftBridgeABI,
@@ -331,10 +335,9 @@ export class Chain implements chainManagerIface {
     );
     console.log("encodedOrder.length", encodedOrder.length);
     const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
-    console.log("mintTx", tx);
     await tx.wait();
-    console.log("tx", tx);
     let txReceipt = await this.provider.getTransaction(tx.hash);
+    console.log("signer", userAddress);
     console.log("txReceipt", txReceipt);
     if (txReceipt) {
       return txReceipt;
