@@ -297,7 +297,7 @@ export class Chain implements chainManagerIface {
       this.signer
     );
     console.log("encodedOrder.length", encodedOrder.length);
-    const tx = await bridge.mint(encodedOrder, { nonce });
+    const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
     console.log("mintTx", tx);
     await tx.wait();
     let txReceipt = await this.provider.getTransaction(tx.hash);
