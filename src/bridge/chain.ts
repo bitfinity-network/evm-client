@@ -35,6 +35,7 @@ import { AbiItem, numberToHex } from "web3-utils";
 import { ApproveArgs, Tokens } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
+import erc20TokenAbi from "../abi/erc20Token.json";
 
 export class Chain implements chainManagerIface {
   public minterCanister: string;
@@ -313,7 +314,6 @@ export class Chain implements chainManagerIface {
   }
 
   public async burn_native_tokens(
-    dstToken: Id256,
     recipient: Id256,
     dstChainId: number,
     amount: number
@@ -325,11 +325,14 @@ export class Chain implements chainManagerIface {
       this.signer
     );
 
-    const result = await bridge.burn(recipient, dstToken, dstChainId, {
-      value: ethers.parseEther(String(amount)),
+    const result = await bridge.burn(recipient, dstChainId, {
+      value: amount,
+      nonce: await this.get_nonce(),
+      gasLimit: 200000,
     });
-    if (result && result.transactionHash) {
-      return result.transactionHash;
+    await result.wait();
+    if (result && result.hash) {
+      return result.hash;
     } else {
       throw Error("Transaction not successful");
     }
@@ -393,7 +396,14 @@ export class Chain implements chainManagerIface {
   }
 
   public async check_erc20_balance(token: Address): Promise<number> {
-    return 0;
+    const contract = new ethers.Contract(
+      token.getAddress(),
+      erc20TokenAbi.abi,
+      this.signer
+    );
+    const result = await contract.balanceOf(await this.signer.getAddress());
+    console.log("balance of", result);
+    return Number(result);
   }
 
   public async get_nonce(): Promise<number> {

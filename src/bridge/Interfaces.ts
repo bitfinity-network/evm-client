@@ -76,7 +76,6 @@ export interface chainManagerIface {
   ) => Promise<TxHash | undefined>;
 
   burn_native_tokens: (
-    dstToken: Id256,
     recipient: Id256,
     dstChainId: number,
     amount: number

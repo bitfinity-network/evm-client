@@ -22,12 +22,14 @@ describe("Bridge class", () => {
   let chainId: number;
 
   beforeAll(async () => {
-    const { bridge: initializedBridge, erc20TokenAddress } = await setupTests();
+    const { bridge: initializedBridge } = await setupTests();
     bridge = initializedBridge;
-
-    ercToken = new Address(erc20TokenAddress);
+    const nativeAddress = ethers.ZeroAddress.slice(0, -1) + 2;
+    console.log("native Adress", nativeAddress);
+    ercToken = new Address(nativeAddress);
+    console.log("ercToken", ercToken);
     tokenInId256 = Id256Factory.fromAddress(
-      new AddressWithChainID(erc20TokenAddress, await bridge.get_chain_id())
+      new AddressWithChainID(nativeAddress, await bridge.get_chain_id())
     );
     chainId = await bridge.get_chain_id();
   });
@@ -43,11 +45,11 @@ describe("Bridge class", () => {
     });
   });
 
-  describe("deploy_bft_wrapped_token of erc20 token", () => {
+  describe("deploy_bft_wrapped_token of native token", () => {
     it("should return the wrapped token address", async () => {
       wrappedToken = await bridge.deploy_bft_wrapped_token(
-        "Token",
-        "TKN",
+        "WrappedBFT",
+        "WFT",
         tokenInId256
       );
 
@@ -57,20 +59,25 @@ describe("Bridge class", () => {
 
   describe("burn erc20 tokens", () => {
     it("should return the wrapped token address", async () => {
-      burnTxHash = await bridge.burn_erc_20_tokens(
-        ercToken,
-        tokenInId256,
-        1000000,
-        chainId
+      const userAddress = await bridge.signer.getAddress();
+      const addressID256 = Id256Factory.fromAddress(
+        new AddressWithChainID(userAddress, chainId)
+      );
+      burnTxHash = await bridge.burn_native_tokens(
+        addressID256,
+        chainId,
+        10000
       );
 
       expect(burnTxHash).toEqual(expect.any(String));
     });
   });
-
-  describe("Create mint order and mint wrapped erc20 token", () => {
+  describe("Create mint order and mint wrapped native token", () => {
     it("should return the wrapped token address", async () => {
       const result = await bridge.mint_erc_20_tokens(burnTxHash!, chainId);
+
+      console.log("result of mint", result);
+
       expect(result).toEqual(expect.any(TransactionResponse));
     });
   });
@@ -78,12 +85,15 @@ describe("Bridge class", () => {
   describe("Check Wrapped Token balance", () => {
     it("should return the wrapped token address", async () => {
       const result = await bridge.check_erc20_balance(wrappedToken);
+
+      console.log("result of balce", result);
+
       expect(Number(result)).toBeGreaterThan(0);
     });
   });
 
-  describe("burn wrapped tokens", () => {
-    it("should return the wrapped token address", async () => {
+  describe("burn wrapped native tokens", () => {
+    it("should return the burnt transaction hash", async () => {
       const wrappedTokenID256 = Id256Factory.fromAddress(
         new AddressWithChainID(wrappedToken.getAddress(), chainId)
       );
@@ -98,9 +108,12 @@ describe("Bridge class", () => {
     });
   });
 
-  describe("Create mint order and mint erc20 tokens back", () => {
+  describe("Create mint order and mint native tokens back", () => {
     it("should return the wrapped token address", async () => {
       const result = await bridge.mint_erc_20_tokens(burnTxHash!, chainId);
+
+      console.log("result of mint", result);
+
       expect(result).toEqual(expect.any(TransactionResponse));
     });
   });

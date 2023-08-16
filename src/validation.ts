@@ -90,6 +90,7 @@ export class Address {
 
     if (isAddress(this.addressAsBuffer())) {
     } else {
+      console.log(address);
       throw Error("Not a valid Address");
     }
   }

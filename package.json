@@ -23,7 +23,7 @@
     "typescript": "^5.1.6"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --runInBand",
     "watch": "tsup --watch",
     "build": "tsup  --format esm,cjs,iife --dts --sourcemap src/index.ts",
     "changeset": "changeset",
