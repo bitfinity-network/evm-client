@@ -1,7 +1,14 @@
-import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
+import {
+  IcConnector,
+  IcrcIDL,
+  MinterIDL,
+  MinterService,
+  SpenderIDL,
+  SpenderService,
+} from "../ic";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
-import { MintReason } from "../ic/idl/minter/minter.did";
+import { MintReason, Result } from "../ic/idl/minter/minter.did";
 import {
   Signer,
   ethers,
@@ -113,16 +120,12 @@ export class Chain implements chainManagerIface {
     return undefined;
   }
 
-  public async add_operation_points() {
+  public async add_operation_points(canisterPrincipal: Principal) {
     const userPrincipal = this.Ic.getPrincipal();
     const tx_hash = new Uint8Array(32);
-    console.log(
-      "minter canister principal",
-      Principal.fromText(this.minterCanister)
-    );
-    const receiver_canister = Id256Factory.principalToBytes32(
-      Principal.fromText(this.minterCanister)
-    );
+    console.log("minter canister principal", canisterPrincipal);
+    const receiver_canister =
+      Id256Factory.principalToBytes32(canisterPrincipal);
     console.log("receiver_canister", receiver_canister);
     console.log("receiver_canister length", receiver_canister.length);
     const user_data = userPrincipal?.toUint8Array();
@@ -188,7 +191,7 @@ export class Chain implements chainManagerIface {
     console.log("approvalResult", approvalResult);
 
     const recipient_chain_id = await this.get_chain_id();
-    await this.add_operation_points();
+    await this.add_operation_points(Principal.fromText(this.minterCanister));
 
     const tokenAddress = await this.get_wrapped_token_address(
       Id256Factory.fromPrincipal(token)
@@ -224,27 +227,38 @@ export class Chain implements chainManagerIface {
     return ethers.getBytes(new Uint8Array(result.Ok));
   }
 
-  /* public async getErcTokenBalance(tokenAddress: Address) {
-    const WrappedTokenContract = new ethers.Contract(
-      from_token.getAddress(),
-      WrappedTokenABI,
-      this.signer
-    );
-    const approveTx = await WrappedTokenContract.approve(
-      bridge!?.getAddress(),
-      amount,
-      { nonce: await this.get_nonce() }
-    );
-  } */
+  public async mint_icrc_tokens(
+    burnTxHash: string,
+    amount: number,
+    spender_principal: Principal
+  ): Promise<bigint | undefined> {
+    const chainId = await this.get_chain_id();
+    console.log("args", { burnTxHash, amount });
+    const result = await this.Ic.actor<MinterService>(
+      this.minterCanister,
+      MinterIDL
+    ).approve_icrc_mint(chainId, burnTxHash);
+    console.log("mint approval result", result);
+
+    if ("Ok" in result) {
+      await this.add_operation_points(spender_principal);
+      const spenderResult = await this.Ic.actor<SpenderService>(
+        spender_principal,
+        SpenderIDL
+      ).transfer_icrc_tokens(chainId, burnTxHash, String(amount));
+      console.log("spenderResult", spenderResult);
+      if ("Ok" in spenderResult) {
+        return spenderResult.Ok;
+      }
+    }
+  }
 
   public async burn_erc_20_tokens(
     from_token: Address,
     dstToken: Id256,
-    amount: number
+    amount: number,
+    chainId: number = 0
   ): Promise<TxHash | undefined> {
-    const chainId = await this.get_chain_id();
-    const recipient = await this.signer.getAddress();
-
     const bridge = await this.get_bft_bridge_contract();
     const bftContract = new ethers.Contract(
       bridge!?.getAddress(),
@@ -267,9 +281,6 @@ export class Chain implements chainManagerIface {
       { nonce: await this.get_nonce() }
     );
     const approvedTx = await approveTx.wait();
-    console.log("transaction was approved", approvedTx);
-    let txReceipt = await this.provider.getTransaction(approveTx.hash);
-    console.log("app txReceipt", txReceipt);
     console.log("burn args", {
       amount: Number(amount),
       from_address: from_token.getAddress(),
@@ -278,10 +289,10 @@ export class Chain implements chainManagerIface {
     });
 
     const tx = await bftContract.burn(
-      Number("1"),
+      Number(amount),
       from_token.getAddress(),
       Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
-      dstToken,
+      0,
       {
         nonce: await this.get_nonce(),
         gasLimit: 200000,
@@ -289,10 +300,9 @@ export class Chain implements chainManagerIface {
       }
     );
     await tx.wait();
-    console.log("transaction after burn", tx);
-
-    if (tx && tx.transactionHash) {
-      return tx.transactionHash;
+    console.log("tx", tx);
+    if (tx) {
+      return tx.hash;
     } else {
       throw Error("Transaction not successful");
     }

@@ -17,6 +17,7 @@ describe("Bridge class", () => {
   let signedMintOrder: ethers.BytesLike;
   let ercToken: Address;
   let tokenInId256: Id256;
+  let burnTxHash: string | undefined;
 
   beforeAll(async () => {
     tokenInId256 = Id256Factory.fromPrincipal(
@@ -62,7 +63,7 @@ describe("Bridge class", () => {
   });
 
   describe("Mint ERC20 Token", () => {
-    it("should return Ok result", async () => {
+    it("should return Transaction response", async () => {
       const result = await bridge.mintOrder(signedMintOrder);
       console.log("mint result", result);
       expect(result).toEqual(expect.any(TransactionResponse));
@@ -70,17 +71,27 @@ describe("Bridge class", () => {
   });
 
   describe("burn erc20 token", () => {
-    it("should return Ok result", async () => {
-      const amountInWei = String(ethers.parseEther("0.1"));
-
-      const result = await bridge.burn_erc_20_tokens(
+    it("should return hash string", async () => {
+      burnTxHash = await bridge.burn_erc_20_tokens(
         ercToken,
         tokenInId256,
-        Number(amountInWei)
+        1000000,
+        0
       );
-      console.log("burn erc20 result", result);
-      //TODO: added expected test
-      // expect(result).toEqual(expect.any(Uint8Array));
+      console.log("burn erc20 result", burnTxHash);
+      expect(burnTxHash).toEqual(expect.any(String));
+    });
+  });
+
+  describe("mint icrc tokens after burning erc20 token", () => {
+    it("should return Ok result", async () => {
+      const result = await bridge.mint_icrc_tokens(
+        burnTxHash!,
+        1000000,
+        Principal.fromText(canisterIds.spender.local)
+      );
+      console.log("mint icrc result", result);
+      expect(result).toEqual(expect.any(BigInt));
     });
   });
 });

@@ -18,6 +18,11 @@ import {
   _SERVICE as IcrcService,
 } from "./idl/icrc/icrc.did";
 
+import {
+  idlFactory as SpenderIDL,
+  _SERVICE as SpenderService,
+} from "./idl/spender/spender.did";
+
 const IC_HOST = "http://127.0.0.1:4943/";
 const IC_ENVIRON = "local";
 
@@ -75,5 +80,5 @@ export class IcConnector {
   }
 }
 
-export { MinterIDL, IcrcIDL };
-export type { MinterService, IcrcService };
+export { MinterIDL, IcrcIDL, SpenderIDL };
+export type { MinterService, IcrcService, SpenderService };

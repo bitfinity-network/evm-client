@@ -71,7 +71,8 @@ export interface chainManagerIface {
   burn_erc_20_tokens: (
     from_token: Address,
     dstToken: Id256,
-    amount: number
+    amount: number,
+    chainId: number
   ) => Promise<TxHash | undefined>;
 
   burn_native_tokens: (
