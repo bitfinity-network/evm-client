@@ -291,7 +291,7 @@ export class Chain implements chainManagerIface {
   ): Promise<TransactionResponse | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
     const userAddress = await this.signer.getAddress();
-    const nonce = await this.provider.getTransactionCount(userAddress);
+    const nonce = await this.get_nonce();
 
     console.log("signer", userAddress);
     const bridge = new ethers.Contract(
@@ -299,11 +299,8 @@ export class Chain implements chainManagerIface {
       BftBridgeABI,
       this.signer
     );
-    console.log("encoded Order before", encodedOrder);
-    const encodedData = ethers.hexlify(encodedOrder);
-    console.log("encoded Order after", encodedData);
-
-    const tx = await bridge.mint(encodedData, { nonce });
+    console.log("encodedOrder.length", encodedOrder.length);
+    const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
     console.log("mintTx", tx);
     await tx.wait();
     let txReceipt = await this.provider.getTransaction(tx.hash);
