@@ -88,7 +88,8 @@ describe("Bridge class", () => {
       const result = await bridge.mint_icrc_tokens(
         burnTxHash!,
         1000000,
-        Principal.fromText(canisterIds.spender.local)
+        Principal.fromText(canisterIds.spender.local),
+        Principal.fromText(canisterIds.token.local)
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));

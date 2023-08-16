@@ -123,11 +123,8 @@ export class Chain implements chainManagerIface {
   public async add_operation_points(canisterPrincipal: Principal) {
     const userPrincipal = this.Ic.getPrincipal();
     const tx_hash = new Uint8Array(32);
-    console.log("minter canister principal", canisterPrincipal);
     const receiver_canister =
       Id256Factory.principalToBytes32(canisterPrincipal);
-    console.log("receiver_canister", receiver_canister);
-    console.log("receiver_canister length", receiver_canister.length);
     const user_data = userPrincipal?.toUint8Array();
 
     let ABI = [
@@ -141,6 +138,7 @@ export class Chain implements chainManagerIface {
     console.log("encodedData", encodedData);
 
     let notify_tx_hash = await this.send_notification_tx(encodedData);
+    console.log("notify_tx_hash", notify_tx_hash);
   }
 
   async send_notification_tx(notification: string) {
@@ -230,7 +228,8 @@ export class Chain implements chainManagerIface {
   public async mint_icrc_tokens(
     burnTxHash: string,
     amount: number,
-    spender_principal: Principal
+    spender_principal: Principal,
+    icrcToken: Principal
   ): Promise<bigint | undefined> {
     const chainId = await this.get_chain_id();
     console.log("args", { burnTxHash, amount });
@@ -241,11 +240,18 @@ export class Chain implements chainManagerIface {
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
-      await this.add_operation_points(spender_principal);
+      const fee = await this.get_icrc_token_fee(icrcToken);
+      const approvedAmount = Number(result.Ok) - fee!;
+      console.log("approved Amount", approvedAmount);
+      console.log("approved Amount", "0x" + approvedAmount.toString(16));
       const spenderResult = await this.Ic.actor<SpenderService>(
         spender_principal,
         SpenderIDL
-      ).transfer_icrc_tokens(chainId, burnTxHash, String(amount));
+      ).transfer_icrc_tokens(
+        chainId,
+        burnTxHash,
+        "0x" + approvedAmount.toString(16)
+      );
       console.log("spenderResult", spenderResult);
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
