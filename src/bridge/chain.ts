@@ -224,6 +224,19 @@ export class Chain implements chainManagerIface {
     return ethers.getBytes(new Uint8Array(result.Ok));
   }
 
+  /* public async getErcTokenBalance(tokenAddress: Address) {
+    const WrappedTokenContract = new ethers.Contract(
+      from_token.getAddress(),
+      WrappedTokenABI,
+      this.signer
+    );
+    const approveTx = await WrappedTokenContract.approve(
+      bridge!?.getAddress(),
+      amount,
+      { nonce: await this.get_nonce() }
+    );
+  } */
+
   public async burn_erc_20_tokens(
     from_token: Address,
     dstToken: Id256,
@@ -246,19 +259,33 @@ export class Chain implements chainManagerIface {
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
       amount,
-      { nonce: await this.get_nonce(), gasLimit: 200000 }
+      { nonce: await this.get_nonce() }
     );
-    await approveTx.wait();
-    console.log("transaction was approved", approveTx);
+    const approvedTx = await approveTx.wait();
+    console.log("transaction was approved", approvedTx);
+    let txReceipt = await this.provider.getTransaction(approveTx.hash);
+    console.log("app txReceipt", txReceipt);
+    console.log("burn args", {
+      amount,
+      from_address: from_token.getAddress(),
+      recipient: Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
+      toToken: dstToken,
+    });
 
     const tx = await bftContract.burn(
       amount,
       from_token.getAddress(),
-      Id256Factory.fromAddress(new AddressWithChainID(recipient, chainId)),
+      Id256Factory.fromPrincipal(this.Ic.getPrincipal()!),
       dstToken,
-      { nonce: await this.get_nonce(), gasLimit: 200000 }
+      {
+        nonce: await this.get_nonce(),
+        gasLimit: 200000,
+        //gasPrice: (await this.provider.getFeeData()).gasPrice,
+      }
     );
     await tx.wait();
+    console.log("transaction after burn", tx);
+
     if (tx && tx.transactionHash) {
       return tx.transactionHash;
     } else {
