@@ -86,14 +86,17 @@ export class Chain implements chainManagerIface {
     fromToken: Id256
   ): Promise<Address> {
     const bridge = await this.get_bft_bridge_contract();
-    const contract = new ethers.Contract(
-      bridge!?.getAddress(),
-      BftBridgeABI,
-      this.signer
-    );
-    const tx = await contract.deployERC20(name, symbol, fromToken);
-    await tx.wait();
-    const tokenAddress = await this.get_wrapped_token_address(fromToken);
+    let tokenAddress = await this.get_wrapped_token_address(fromToken);
+    if (!tokenAddress) {
+      const contract = new ethers.Contract(
+        bridge!?.getAddress(),
+        BftBridgeABI,
+        this.signer
+      );
+      const tx = await contract.deployERC20(name, symbol, fromToken);
+      await tx.wait();
+      tokenAddress = await this.get_wrapped_token_address(fromToken);
+    }
     return tokenAddress!;
   }
 
@@ -243,19 +246,19 @@ export class Chain implements chainManagerIface {
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
       amount,
-      { nonce: await this.get_nonce() }
+      { nonce: await this.get_nonce(), gasLimit: 200000 }
     );
     await approveTx.wait();
+    console.log("transaction was approved", approveTx);
 
     const tx = await bftContract.burn(
       amount,
       from_token.getAddress(),
       Id256Factory.fromAddress(new AddressWithChainID(recipient, chainId)),
       dstToken,
-      { nonce: await this.get_nonce() }
+      { nonce: await this.get_nonce(), gasLimit: 200000 }
     );
     await tx.wait();
-    console.log("burn result", tx);
     if (tx && tx.transactionHash) {
       return tx.transactionHash;
     } else {
@@ -303,6 +306,7 @@ export class Chain implements chainManagerIface {
     const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
     console.log("mintTx", tx);
     await tx.wait();
+    console.log("tx", tx);
     let txReceipt = await this.provider.getTransaction(tx.hash);
     console.log("txReceipt", txReceipt);
     if (txReceipt) {
