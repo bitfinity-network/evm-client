@@ -9,7 +9,7 @@ import {
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
 import { TEST_TOKEN_PRINCIPAL } from "../constants";
-import { ethers } from "ethers";
+import { TransactionResponse, ethers } from "ethers";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {
@@ -65,8 +65,7 @@ describe("Bridge class", () => {
     it("should return Ok result", async () => {
       const result = await bridge.mintOrder(signedMintOrder);
       console.log("mint result", result);
-      //TODO: added expected test
-      // expect(result).toEqual(expect.any(Uint8Array));
+      expect(result).toEqual(expect.any(TransactionResponse));
     });
   });
 
