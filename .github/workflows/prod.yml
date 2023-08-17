@@ -21,8 +21,9 @@ jobs:
       - name: Run Local Evm Repo
         uses: actions/checkout@v2
         with:
-          repository: "bitfinity-network/evm-canister"
-          ref: "install_spender_canister"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: bitfinity-network/evm-canister
+          ref: develop
           path: ./evm
 
       - name: Install Evm Dependencies
