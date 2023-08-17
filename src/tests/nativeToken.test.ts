@@ -29,7 +29,7 @@ describe("Bridge class", () => {
     ercToken = new Address(nativeAddress);
     console.log("ercToken", ercToken);
     tokenInId256 = Id256Factory.fromAddress(
-      new AddressWithChainID(nativeAddress, await bridge.get_chain_id())
+      new AddressWithChainID(nativeAddress, await bridge.get_chain_id()),
     );
     chainId = await bridge.get_chain_id();
   });
@@ -50,7 +50,7 @@ describe("Bridge class", () => {
       wrappedToken = await bridge.deploy_bft_wrapped_token(
         "WrappedBFT",
         "WFT",
-        tokenInId256
+        tokenInId256,
       );
 
       expect(wrappedToken).toEqual(expect.any(Address));
@@ -61,19 +61,19 @@ describe("Bridge class", () => {
     it("should return the wrapped token address", async () => {
       const userAddress = await bridge.signer.getAddress();
       const addressID256 = Id256Factory.fromAddress(
-        new AddressWithChainID(userAddress, chainId)
+        new AddressWithChainID(userAddress, chainId),
       );
       burnTxHash = await bridge.burn_native_tokens(
         addressID256,
         chainId,
-        10000
+        10000,
       );
 
       expect(burnTxHash).toEqual(expect.any(String));
     });
   });
   describe("Create mint order and mint wrapped native token", () => {
-    it("should return the wrapped token address", async () => {
+    it("should return the TransactionResponse", async () => {
       const result = await bridge.mint_erc_20_tokens(burnTxHash!, chainId);
 
       console.log("result of mint", result);
@@ -94,14 +94,10 @@ describe("Bridge class", () => {
 
   describe("burn wrapped native tokens", () => {
     it("should return the burnt transaction hash", async () => {
-      const wrappedTokenID256 = Id256Factory.fromAddress(
-        new AddressWithChainID(wrappedToken.getAddress(), chainId)
-      );
       burnTxHash = await bridge.burn_erc_20_tokens(
         wrappedToken,
-        wrappedTokenID256,
         1000000,
-        chainId
+        chainId,
       );
 
       expect(burnTxHash).toEqual(expect.any(String));

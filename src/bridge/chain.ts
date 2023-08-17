@@ -47,7 +47,7 @@ export class Chain implements chainManagerIface {
     minterCanister: string,
     Ic: IcConnector,
     signer: Signer,
-    provider: Provider
+    provider: Provider,
   ) {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
@@ -59,7 +59,7 @@ export class Chain implements chainManagerIface {
     const chainId = await this.get_chain_id();
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
-      MinterIDL
+      MinterIDL,
     ).get_bft_bridge_contract([chainId]);
     console.log("bft bridge contract address", result);
     if (result.length) {
@@ -69,14 +69,14 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_wrapped_token_address(
-    fromToken: Id256
+    fromToken: Id256,
   ): Promise<Address | undefined> {
     const bridge = await this.get_bft_bridge_contract();
     if (bridge) {
       const contract = new ethers.Contract(
         bridge?.getAddress(),
         BftBridgeABI,
-        this.provider
+        this.provider,
       );
       const wrappedToken = await contract.getWrappedToken(fromToken);
       console.log("wrappedToken", wrappedToken);
@@ -90,7 +90,7 @@ export class Chain implements chainManagerIface {
   public async deploy_bft_wrapped_token(
     name: string,
     symbol: string,
-    fromToken: Id256
+    fromToken: Id256,
   ): Promise<Address> {
     const bridge = await this.get_bft_bridge_contract();
     let tokenAddress = await this.get_wrapped_token_address(fromToken);
@@ -98,7 +98,7 @@ export class Chain implements chainManagerIface {
       const contract = new ethers.Contract(
         bridge!?.getAddress(),
         BftBridgeABI,
-        this.signer
+        this.signer,
       );
       const nonce = await this.get_nonce();
       const tx = await contract.deployERC20(name, symbol, fromToken, {
@@ -111,11 +111,11 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_icrc_token_fee(
-    principal: Principal
+    principal: Principal,
   ): Promise<number | undefined> {
     const result = await this.Ic.actor<IcrcService>(
       principal,
-      IcrcIDL
+      IcrcIDL,
     ).icrc1_fee();
     if (result) {
       return Number(result);
@@ -123,24 +123,25 @@ export class Chain implements chainManagerIface {
     return undefined;
   }
 
-  public async add_operation_points(canisterPrincipal: Principal) {
+  public async add_operation_points() {
     const userPrincipal = this.Ic.getPrincipal();
     const tx_hash = new Uint8Array(32);
-    const receiver_canister =
-      Id256Factory.principalToBytes32(canisterPrincipal);
+    const receiver_canister = Id256Factory.principalToBytes32(
+      Principal.fromText(this.minterCanister),
+    );
     const user_data = userPrincipal?.toUint8Array();
 
-    let ABI = [
+    const ABI = [
       "function evm_canister_notification_needed(bytes32 tx_hash, bytes32 principal, bytes user_data)",
     ];
-    let iface = new ethers.Interface(ABI);
+    const iface = new ethers.Interface(ABI);
     const encodedData = iface.encodeFunctionData(
       "evm_canister_notification_needed",
-      [tx_hash, receiver_canister, user_data]
+      [tx_hash, receiver_canister, user_data],
     );
     console.log("encodedData", encodedData);
 
-    let notify_tx_hash = await this.send_notification_tx(encodedData);
+    const notify_tx_hash = await this.send_notification_tx(encodedData);
     console.log("notify_tx_hash", notify_tx_hash);
   }
 
@@ -168,7 +169,7 @@ export class Chain implements chainManagerIface {
 
   public async burn_icrc2_tokens(
     token: Principal,
-    amount: number
+    amount: number,
   ): Promise<SignedMintOrder> {
     const fee = await this.get_icrc_token_fee(token);
     const approve: ApproveArgs = {
@@ -187,15 +188,15 @@ export class Chain implements chainManagerIface {
     console.log("approve args", approve);
     const approvalResult = await this.Ic.actor<IcrcService>(
       token.toText(),
-      IcrcIDL
+      IcrcIDL,
     ).icrc2_approve(approve);
     console.log("approvalResult", approvalResult);
 
     const recipient_chain_id = await this.get_chain_id();
-    await this.add_operation_points(Principal.fromText(this.minterCanister));
+    await this.add_operation_points();
 
     const tokenAddress = await this.get_wrapped_token_address(
-      Id256Factory.fromPrincipal(token)
+      Id256Factory.fromPrincipal(token),
     );
     console.log("tokenAddress", tokenAddress);
     if (tokenAddress) {
@@ -215,11 +216,11 @@ export class Chain implements chainManagerIface {
   }
 
   public async createMintOrder(
-    mintReason: MintReason
+    mintReason: MintReason,
   ): Promise<SignedMintOrder> {
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
-      MinterIDL
+      MinterIDL,
     ).create_erc_20_mint_order(mintReason);
     if ("Err" in result) {
       console.log(result.Err);
@@ -232,13 +233,13 @@ export class Chain implements chainManagerIface {
     burnTxHash: string,
     amount: number,
     spender_principal: Principal,
-    icrcToken: Principal
+    icrcToken: Principal,
   ): Promise<bigint | undefined> {
     const chainId = await this.get_chain_id();
     console.log("args", { burnTxHash, amount });
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
-      MinterIDL
+      MinterIDL,
     ).approve_icrc_mint(chainId, burnTxHash);
     console.log("mint approval result", result);
 
@@ -249,11 +250,11 @@ export class Chain implements chainManagerIface {
       console.log("approved Amount", "0x" + approvedAmount.toString(16));
       const spenderResult = await this.Ic.actor<SpenderService>(
         spender_principal,
-        SpenderIDL
+        SpenderIDL,
       ).transfer_icrc_tokens(
         chainId,
         burnTxHash,
-        "0x" + approvedAmount.toString(16)
+        "0x" + approvedAmount.toString(16),
       );
       console.log("spenderResult", spenderResult);
       if ("Ok" in spenderResult) {
@@ -264,27 +265,26 @@ export class Chain implements chainManagerIface {
 
   public async burn_erc_20_tokens(
     from_token: Address,
-    dstToken: Id256,
     amount: number,
-    chainId: number = 0
+    chainId: number = 0,
   ): Promise<TxHash | undefined> {
     const bridge = await this.get_bft_bridge_contract();
     const bftContract = new ethers.Contract(
       bridge!?.getAddress(),
       BftBridgeABI,
-      this.signer
+      this.signer,
     );
     const WrappedTokenContract = new ethers.Contract(
       from_token.getAddress(),
       WrappedTokenABI,
-      this.signer
+      this.signer,
     );
     const userAddress = await this.signer.getAddress();
 
     const approveTx = await WrappedTokenContract.approve(
       bridge!?.getAddress(),
       String(amount),
-      { nonce: await this.get_nonce() }
+      { nonce: await this.get_nonce() },
     );
     await approveTx.wait();
 
@@ -302,7 +302,7 @@ export class Chain implements chainManagerIface {
       {
         nonce: await this.get_nonce(),
         gasLimit: 200000,
-      }
+      },
     );
     await tx.wait();
     console.log("tx", tx);
@@ -316,13 +316,13 @@ export class Chain implements chainManagerIface {
   public async burn_native_tokens(
     recipient: Id256,
     dstChainId: number,
-    amount: number
+    amount: number,
   ): Promise<TxHash | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
     const bridge = new ethers.Contract(
       bridgeAddress!?.getAddress(),
       BftBridgeABI,
-      this.signer
+      this.signer,
     );
 
     const result = await bridge.burn(recipient, dstChainId, {
@@ -339,7 +339,7 @@ export class Chain implements chainManagerIface {
   }
 
   async mintOrder(
-    encodedOrder: SignedMintOrder
+    encodedOrder: SignedMintOrder,
   ): Promise<TransactionResponse | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
     const userAddress = await this.signer.getAddress();
@@ -348,7 +348,7 @@ export class Chain implements chainManagerIface {
     const bridge = new ethers.Contract(
       bridgeAddress!?.getAddress(),
       BftBridgeABI,
-      this.signer
+      this.signer,
     );
     console.log("encodedOrder.length", encodedOrder.length);
     const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
@@ -363,8 +363,9 @@ export class Chain implements chainManagerIface {
 
   public async mint_erc_20_tokens(
     burn_tx_hash: TxHash,
-    burn_chain_id: number
+    burn_chain_id: number,
   ): Promise<TransactionResponse | undefined> {
+    await this.add_operation_points();
     const reason = {
       Erc20Burn: {
         burn_tx_hash,
@@ -376,11 +377,11 @@ export class Chain implements chainManagerIface {
   }
 
   public async mint_native_tokens(
-    reason: MintReason
+    reason: MintReason,
   ): Promise<TransactionReceipt> {
     const result = await this.Ic.actor<MinterService>(
       this.minterCanister,
-      MinterIDL
+      MinterIDL,
     ).mint_native_token(reason);
     if ("Ok" in result) {
       const txHash = result.Ok;
@@ -399,7 +400,7 @@ export class Chain implements chainManagerIface {
     const contract = new ethers.Contract(
       token.getAddress(),
       erc20TokenAbi.abi,
-      this.signer
+      this.signer,
     );
     const result = await contract.balanceOf(await this.signer.getAddress());
     console.log("balance of", result);

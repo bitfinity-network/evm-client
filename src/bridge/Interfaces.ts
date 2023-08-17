@@ -32,7 +32,7 @@ export interface EVMBridgeIface {
   swap_evm_tokens: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
 }
 
@@ -40,12 +40,12 @@ export interface ICEVMBridgeIface {
   swap_ic_to_evm: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
   swap_evm_to_ic: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
 }
 
@@ -63,31 +63,30 @@ export interface chainManagerIface {
 
   burn_icrc2_tokens: (
     token: Principal,
-    amount: number
+    amount: number,
   ) => Promise<SignedMintOrder>;
 
   get_chain_id: () => Promise<number>;
 
   burn_erc_20_tokens: (
     from_token: Address,
-    dstToken: Id256,
     amount: number,
-    chainId: number
+    chainId: number,
   ) => Promise<TxHash | undefined>;
 
   burn_native_tokens: (
     recipient: Id256,
     dstChainId: number,
-    amount: number
+    amount: number,
   ) => Promise<TxHash | undefined>;
 
   mint_erc_20_tokens: (
     burn_tx_hash: TxHash,
-    chain_id: number
+    chain_id: number,
   ) => Promise<TransactionResponse | undefined>;
 
   mintOrder: (
-    encodedOrder: SignedMintOrder
+    encodedOrder: SignedMintOrder,
   ) => Promise<TransactionResponse | undefined>;
 
   mint_native_tokens: (reason: MintReason) => Promise<TransactionReceipt>;

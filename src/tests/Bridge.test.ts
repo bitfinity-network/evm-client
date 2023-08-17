@@ -21,7 +21,7 @@ describe("Bridge class", () => {
 
   beforeAll(async () => {
     tokenInId256 = Id256Factory.fromPrincipal(
-      Principal.fromText(TEST_TOKEN_PRINCIPAL)
+      Principal.fromText(TEST_TOKEN_PRINCIPAL),
     );
     const { bridge: initializedBridge } = await setupTests();
     bridge = initializedBridge;
@@ -44,7 +44,7 @@ describe("Bridge class", () => {
       ercToken = await bridge.deploy_bft_wrapped_token(
         "Token",
         "TKN",
-        tokenInId256
+        tokenInId256,
       );
 
       expect(ercToken).toEqual(expect.any(Address));
@@ -55,7 +55,7 @@ describe("Bridge class", () => {
     it("should return Ok result", async () => {
       const result = await bridge.burn_icrc2_tokens(
         Principal.fromText(canisterIds.token.local),
-        1000000
+        1000000,
       );
       signedMintOrder = result;
       expect(result).toEqual(expect.any(Uint8Array));
@@ -72,12 +72,7 @@ describe("Bridge class", () => {
 
   describe("burn erc20 token", () => {
     it("should return hash string", async () => {
-      burnTxHash = await bridge.burn_erc_20_tokens(
-        ercToken,
-        tokenInId256,
-        1000000,
-        0
-      );
+      burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, 0);
       console.log("burn erc20 result", burnTxHash);
       expect(burnTxHash).toEqual(expect.any(String));
     });
@@ -89,7 +84,7 @@ describe("Bridge class", () => {
         burnTxHash!,
         1000000,
         Principal.fromText(canisterIds.spender.local),
-        Principal.fromText(canisterIds.token.local)
+        Principal.fromText(canisterIds.token.local),
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));

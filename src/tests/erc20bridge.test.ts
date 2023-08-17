@@ -27,7 +27,7 @@ describe("Bridge class", () => {
 
     ercToken = new Address(erc20TokenAddress);
     tokenInId256 = Id256Factory.fromAddress(
-      new AddressWithChainID(erc20TokenAddress, await bridge.get_chain_id())
+      new AddressWithChainID(erc20TokenAddress, await bridge.get_chain_id()),
     );
     chainId = await bridge.get_chain_id();
   });
@@ -48,7 +48,7 @@ describe("Bridge class", () => {
       wrappedToken = await bridge.deploy_bft_wrapped_token(
         "Token",
         "TKN",
-        tokenInId256
+        tokenInId256,
       );
 
       expect(wrappedToken).toEqual(expect.any(Address));
@@ -61,7 +61,7 @@ describe("Bridge class", () => {
         ercToken,
         tokenInId256,
         1000000,
-        chainId
+        chainId,
       );
 
       expect(burnTxHash).toEqual(expect.any(String));
@@ -84,14 +84,10 @@ describe("Bridge class", () => {
 
   describe("burn wrapped tokens", () => {
     it("should return the wrapped token address", async () => {
-      const wrappedTokenID256 = Id256Factory.fromAddress(
-        new AddressWithChainID(wrappedToken.getAddress(), chainId)
-      );
       burnTxHash = await bridge.burn_erc_20_tokens(
         wrappedToken,
-        wrappedTokenID256,
         1000000,
-        chainId
+        chainId,
       );
 
       expect(burnTxHash).toEqual(expect.any(String));
