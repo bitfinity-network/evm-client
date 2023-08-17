@@ -1,0 +1,34 @@
+name: CI / CD workflow for Prod
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+env:
+  LOCAL_TEST_SEED_PHRASE: ""
+  IC_HOST: http://127.0.0.1:8080
+  RPC_URL: http://127.0.0.1:8545
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run Local Evm Repo
+        uses: actions/checkout@v2
+        with:
+          repository: "bitfinity-network/evm-canister"
+          ref: "install_spender_canister"
+          path: ./evm
+
+      - name: Install Evm Dependencies
+        run: |
+          cd evm
+
+
+
+ 
