@@ -1,1 +1,1 @@
-export * from "./bridge/chain"
+export * from "./bridge/chain";
