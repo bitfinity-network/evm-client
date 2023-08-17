@@ -6,11 +6,7 @@ import {
   Id256,
   Id256Factory,
 } from "../validation";
-import { Principal } from "@dfinity/principal";
-import canisterIds from "../ic/canister_ids.json";
-import { TEST_TOKEN_PRINCIPAL } from "../constants";
 import { TransactionResponse, ethers } from "ethers";
-import { MintReason } from "../ic/idl/minter/minter.did";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {
@@ -66,12 +62,13 @@ describe("Bridge class", () => {
       burnTxHash = await bridge.burn_native_tokens(
         addressID256,
         chainId,
-        10000,
+        1000000000000000,
       );
 
       expect(burnTxHash).toEqual(expect.any(String));
     });
   });
+
   describe("Create mint order and mint wrapped native token", () => {
     it("should return the TransactionResponse", async () => {
       const result = await bridge.mint_erc_20_tokens(burnTxHash!, chainId);
@@ -96,7 +93,7 @@ describe("Bridge class", () => {
     it("should return the burnt transaction hash", async () => {
       burnTxHash = await bridge.burn_erc_20_tokens(
         wrappedToken,
-        1000000,
+        1000000000000000,
         chainId,
       );
 
