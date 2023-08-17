@@ -57,12 +57,7 @@ describe("Bridge class", () => {
 
   describe("burn erc20 tokens", () => {
     it("should return the wrapped token address", async () => {
-      burnTxHash = await bridge.burn_erc_20_tokens(
-        ercToken,
-        tokenInId256,
-        1000000,
-        chainId,
-      );
+      burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, chainId);
 
       expect(burnTxHash).toEqual(expect.any(String));
     });
