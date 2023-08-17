@@ -82,15 +82,6 @@ export const identityFromSeed = async (
   return id;
 };
 
-export const IcConnector = async <T = Record<string, ActorMethod>>(
-  canisterId: string | Principal,
-  idl: IDL.InterfaceFactory
-): Promise<ActorSubclass<T>> => {
-  const identity = await decodeFile(DEFAULT_IDENTITY);
-  const agent = await createAgent({ identity, host: IC_HOST });
-  return Actor.createActor(idl, { agent, canisterId });
-};
-
 export const getIdentity = async () => {
   return await identityFromSeed(LOCAL_TEST_SEED_PHRASE);
 };
