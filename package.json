@@ -29,7 +29,7 @@
     "typescript": "^5.1.6"
   },
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest",
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
