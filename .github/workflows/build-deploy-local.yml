@@ -14,22 +14,10 @@ on:
         required: true
 
 jobs:
-  clone-evm:
-    name: "Clone Repo"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Local Evm Repo
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_PKG_TOKEN }}
-          repository: bitfinity-network/evm-canister
-          ref: develop
-          path: ./evm
-
   build-local-evm:
     name: "Build"
-    needs: clone-evm
     uses: bitfinity-network/ci-wf/.github/workflows/build-n-test.yml@main
+
     with:
       runs-on: 4x150g-runner
       container-image: ghcr.io/bitfinity-network/ic-dev-full:rust1.70-dfx0.14-rc-2022-09-30
@@ -37,13 +25,19 @@ jobs:
       audit-allow-warnings: true
       cargo-clippy-extra-args: "-- -D warnings"
       output-artifact: artifact-evm
-      init-script: |
-        cd ./evm
-        ./scripts/build_solidity_smart_contracts.sh
-      artifact-pre-script: |
-        ./scripts/build.sh
-        ./scripts/dfx/deploy_local.sh ${{ inputs.installation-method }}
       enable-target-cache: true
+      init-script: |
+        git submodule update --init --recursive
+        curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+        apt-get update && apt-get install -y nodejs
+        cd submodules/evm-canister && ls -la
+        ./scripts/build_solidity_smart_contracts.sh
+        echo "build_solidity_smart_contracts completed"
+        echo "Run build"
+        export ETHEREUM_GENESIS_ACCOUNTS=0
+        ./scripts/build.sh
+        ./scripts/dfx/deploy_local.sh create
+
     secrets:
       gh_token: ${{ secrets.GH_PKG_TOKEN }}
       gh_login: ${{ secrets.GH_PKG_LOGIN }}
