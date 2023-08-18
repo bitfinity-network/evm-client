@@ -1,0 +1,3 @@
+[submodule "submodules/evm-canister"]
+	path = submodules/evm-canister
+	url = git@github.com:bitfinity-network/evm-canister.git
