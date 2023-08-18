@@ -21,60 +21,31 @@ jobs:
       - name: Run Local Evm Repo
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PKG_TOKEN }}
           repository: bitfinity-network/evm-canister
           ref: develop
           path: ./evm
 
-      - name: Set Up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Build and run local
+        uses: bitfinity-network/ci-wf/.github/workflows/build-n-test.yml@main
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - name: Cache Rust Toolchain and Dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo
-            ~/target
-          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-rust-
+          runs-on: 4x150g-runner
+          container-image: ghcr.io/bitfinity-network/ic-dev-full:rust1.70-dfx0.14-rc-2022-09-30
+          git-fetch-depth: "0"
+          audit-allow-warnings: true
+          cargo-clippy-extra-args: "-- -D warnings"
+          output-artifact: artifact-evm
+          init-script: |
+            cd ./evm
+            ./scripts/build_solidity_smart_contracts.sh
+          artifact-pre-script: |
+            ./scripts/build.sh
 
-      - name: Install Evm Dependencies
-        run: |
-          cd evm
-          echo "Run installations"
-          apt update
-          apt install -y libssl-dev jq
-          sh -ci "$(curl -fsSL https://smartcontracts.org/install.sh)"
-          echo "Installing wasm32"
-
-          rustup target add wasm32-unknown-unknown
-          echo "Installing ic-wasm"
-
-          cargo install ic-wasm
-          echo "Installing icx-proxy"
-          cargo install icx-proxy
-
-          echo "Installing foundary"
-
-          curl -L https://foundry.paradigm.xyz | bash
-
-          echo "Installing protobuf"
-
-          apt install -y protobuf-compiler
-          protoc --version
-
-      - name: Build Smart Contract
+      - name: Run Local build
         run: |
           cd evm
           echo "Build Smart Contract"
-
-            ./scripts/build.sh
-            ./scripts/build_solidity_smart_contracts.sh
-            ./scripts/dfx/deploy_local.sh create
+          ./scripts/dfx/deploy_local.sh create
 
       - name: Checkout repo
         uses: actions/checkout@v3
