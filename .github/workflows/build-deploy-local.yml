@@ -30,8 +30,12 @@ jobs:
         echo "build_solidity_smart_contracts completed"
         echo "Run build"
         export ETHEREUM_GENESIS_ACCOUNTS=0
+      artifact-pre-script: |
         ./scripts/build.sh
-        ./scripts/dfx/deploy_local.sh create
+    run: |
+      cd submodules/evm-canister
+      ./scripts/dfx/deploy_local.sh create
+
     secrets:
       gh_token: ${{ secrets.GH_PKG_TOKEN }}
       gh_login: ${{ secrets.GH_PKG_LOGIN }}
