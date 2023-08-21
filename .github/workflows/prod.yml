@@ -16,8 +16,6 @@ env:
 jobs:
   build-local-evm:
     uses: ./.github/workflows/build-deploy-local.yml
-    with:
-      installation-method: create
     secrets:
       GH_PKG_LOGIN: ${{ secrets.GH_PKG_LOGIN }}
       GH_PKG_TOKEN: ${{ secrets.GH_PKG_TOKEN }}

@@ -2,11 +2,6 @@ name: "Build and Deploy"
 
 on:
   workflow_call:
-    inputs:
-      installation-method:
-        required: true
-        type: string
-        description: "installation method, can be any of create, reinstall, upgrade"
     secrets:
       GH_PKG_LOGIN:
         required: true
@@ -17,7 +12,7 @@ jobs:
   build-local-evm:
     name: "Build"
     uses: bitfinity-network/ci-wf/.github/workflows/build-n-test.yml@main
-
+    background: true
     with:
       runs-on: 4x150g-runner
       container-image: ghcr.io/bitfinity-network/ic-dev-full:rust1.70-dfx0.14-rc-2022-09-30
@@ -37,7 +32,6 @@ jobs:
         export ETHEREUM_GENESIS_ACCOUNTS=0
         ./scripts/build.sh
         ./scripts/dfx/deploy_local.sh create
-
     secrets:
       gh_token: ${{ secrets.GH_PKG_TOKEN }}
       gh_login: ${{ secrets.GH_PKG_LOGIN }}
@@ -47,6 +41,8 @@ jobs:
     needs: build-local-evm
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for Backend to Start
+        run: sleep 20
       - name: Checkout repo
         uses: actions/checkout@v3
       - uses: actions/setup-node@v3
