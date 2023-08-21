@@ -1,7 +1,7 @@
-import { isAddress, isNullish } from "web3-validator";
+import { isAddress } from "web3-validator";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
-import ethers, { Signer } from "ethers";
+import ethers from "ethers";
 
 export type Id256 = Buffer;
 export type SignedMintOrder = ethers.BytesLike; //Uint8Array | number[];
@@ -26,20 +26,19 @@ export class Id256Factory {
   }
 
   static principalToBytes32(principal: Principal): Uint8Array {
-    var oldBuffer = principal.toUint8Array();
+    const oldBuffer = principal.toUint8Array();
 
-    var newBuffer = new ArrayBuffer(32);
-    var buf = new Uint8Array(newBuffer);
+    const newBuffer = new ArrayBuffer(32);
+    const buf = new Uint8Array(newBuffer);
     buf[0] = oldBuffer.length;
     buf.set(oldBuffer, 1);
     return buf;
   }
 
   static principalToBytes(principal: Principal): Uint8Array {
-    var oldBuffer = principal.toUint8Array();
-
-    var newBuffer = new ArrayBuffer(oldBuffer.length + 1);
-    var buf = new Uint8Array(newBuffer);
+    const oldBuffer = principal.toUint8Array();
+    const newBuffer = new ArrayBuffer(oldBuffer.length + 1);
+    const buf = new Uint8Array(newBuffer);
     buf[0] = oldBuffer.length;
     buf.set(oldBuffer, 1);
     return buf;
@@ -88,8 +87,7 @@ export class Address {
   constructor(address: string) {
     this.address = address;
 
-    if (isAddress(this.addressAsBuffer())) {
-    } else {
+    if (!isAddress(this.addressAsBuffer())) {
       console.log(address);
       throw Error("Not a valid Address");
     }
@@ -97,13 +95,13 @@ export class Address {
 }
 
 export class AddressWithChainID extends Address {
-  private chainID: Number;
+  private chainID: number;
 
-  public getChainID(): Number {
+  public getChainID(): number {
     return this.chainID;
   }
 
-  constructor(address: string, chainID: Number) {
+  constructor(address: string, chainID: number) {
     super(address);
     this.chainID = chainID;
   }

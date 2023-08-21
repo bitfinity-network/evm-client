@@ -6,11 +6,7 @@ import {
   Id256,
   Id256Factory,
 } from "../validation";
-import { Principal } from "@dfinity/principal";
-import canisterIds from "../ic/canister_ids.json";
-import { TEST_TOKEN_PRINCIPAL } from "../constants";
-import { TransactionResponse, ethers } from "ethers";
-import { MintReason } from "../ic/idl/minter/minter.did";
+import { TransactionResponse } from "ethers";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {

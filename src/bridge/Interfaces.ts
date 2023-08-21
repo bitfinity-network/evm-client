@@ -4,7 +4,6 @@ import { Principal } from "@dfinity/principal";
 import { IcConnector } from "../ic";
 import {
   Signer,
-  ethers,
   Provider,
   TransactionReceipt,
   TransactionResponse,
@@ -89,5 +88,7 @@ export interface chainManagerIface {
     encodedOrder: SignedMintOrder,
   ) => Promise<TransactionResponse | undefined>;
 
-  mint_native_tokens: (reason: MintReason) => Promise<TransactionReceipt>;
+  mint_native_tokens: (
+    reason: MintReason,
+  ) => Promise<TransactionReceipt | null>;
 }

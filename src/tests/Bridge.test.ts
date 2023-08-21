@@ -1,11 +1,6 @@
 import { setupTests } from "./test-setup";
 import { Chain } from "../bridge/chain";
-import {
-  Address,
-  AddressWithChainID,
-  Id256,
-  Id256Factory,
-} from "../validation";
+import { Address, Id256, Id256Factory } from "../validation";
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
 import { TEST_TOKEN_PRINCIPAL } from "../constants";

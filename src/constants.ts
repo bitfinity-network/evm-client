@@ -1,5 +1,6 @@
 import caninsterIds from "./ic/canister_ids.json";
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
 export const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 export const IC_HOST = process.env.IC_HOST || "http://127.0.0.1:8000/";

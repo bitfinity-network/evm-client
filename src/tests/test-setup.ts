@@ -7,7 +7,6 @@ import {
 } from "./utils";
 import { Chain } from "../bridge/chain";
 import { IC_HOST, MINTER_CANISTER } from "../constants";
-import { parseUnits } from "ethers";
 
 export const setupTests = async () => {
   await mintTesttIcrcToken();

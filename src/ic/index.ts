@@ -71,7 +71,7 @@ export class IcConnector {
 
   actor<T = Record<string, ActorMethod>>(
     cid: string | Principal,
-    idl: IDL.InterfaceFactory
+    idl: IDL.InterfaceFactory,
   ): ActorSubclass<T> {
     return Actor.createActor(idl, {
       agent: this.agent,
