@@ -7,6 +7,7 @@ import {
   Provider,
   TransactionReceipt,
   TransactionResponse,
+  JsonRpcSigner,
 } from "ethers";
 
 export type TxHash = string;
@@ -51,7 +52,7 @@ export interface ICEVMBridgeIface {
 export interface chainManagerIface {
   minterCanister: string;
   Ic: IcConnector;
-  signer: Signer;
+  signer: JsonRpcSigner | Signer;
   provider: Provider;
 
   check_erc20_balance: (token: Address) => Promise<number>;

@@ -16,6 +16,7 @@ import {
   Provider,
   TransactionReceipt,
   TransactionResponse,
+  JsonRpcSigner,
 } from "ethers";
 
 import {
@@ -36,13 +37,13 @@ import { ActorSubclass } from "@dfinity/agent";
 export class Chain implements chainManagerIface {
   public minterCanister: string;
   public Ic: IcConnector;
-  public signer: Signer;
+  public signer: JsonRpcSigner | Signer;
   public provider: Provider;
 
   constructor(
     minterCanister: string,
     Ic: IcConnector,
-    signer: Signer,
+    signer: JsonRpcSigner | Signer,
     provider: Provider,
   ) {
     this.minterCanister = minterCanister;
