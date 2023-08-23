@@ -12,4 +12,6 @@ export const MINTER_CANISTER = caninsterIds.minter.local;
 // Cache Keys
 export const CACHE_KEYS = {
   BURNT_TX: "evm_client_burnt_tx_hash",
+  MINT_ORDER: "evm_client_mint_order",
+  MINT: "evm_client_mint",
 };

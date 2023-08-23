@@ -205,28 +205,35 @@ export class Chain implements chainManagerIface {
       token.toText(),
       IcrcIDL,
     ).icrc2_approve(approve);
-    console.log("approvalResult", approvalResult);
+    if ("Ok" in approvalResult) {
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: Number(approvalResult.Ok),
+      });
+      console.log("approvalResult", approvalResult);
 
-    const recipient_chain_id = await this.get_chain_id();
-    await this.add_operation_points();
+      const recipient_chain_id = await this.get_chain_id();
+      await this.add_operation_points();
 
-    const tokenAddress = await this.get_wrapped_token_address(
-      Id256Factory.fromPrincipal(token),
-    );
-    console.log("tokenAddress", tokenAddress);
-    if (tokenAddress) {
-      const mintReason: MintReason = {
-        Icrc1Burn: {
-          recipient_chain_id,
-          icrc1_token_principal: token,
-          from_subaccount: [],
-          recipient_address: await this.signer.getAddress(),
-          amount: numberToHex(amount),
-        },
-      };
-      console.log("mintReason", mintReason);
-      return await this.createMintOrder(mintReason);
+      const tokenAddress = await this.get_wrapped_token_address(
+        Id256Factory.fromPrincipal(token),
+      );
+      console.log("tokenAddress", tokenAddress);
+      if (tokenAddress) {
+        const mintReason: MintReason = {
+          Icrc1Burn: {
+            recipient_chain_id,
+            icrc1_token_principal: token,
+            from_subaccount: [],
+            recipient_address: await this.signer.getAddress(),
+            amount: numberToHex(amount),
+          },
+        };
+        console.log("mintReason", mintReason);
+        return await this.createMintOrder(mintReason);
+      }
     }
+
     throw Error("Impossible");
   }
 
@@ -241,6 +248,10 @@ export class Chain implements chainManagerIface {
       console.log(result.Err);
       throw result.Err;
     }
+    this.cacheTx(CACHE_KEYS.MINT_ORDER, {
+      time: new Date(),
+      value: result.Ok,
+    });
     return ethers.getBytes(new Uint8Array(result.Ok));
   }
 
@@ -357,6 +368,10 @@ export class Chain implements chainManagerIface {
       });
       await result.wait();
       if (result && result.hash) {
+        this.cacheTx(CACHE_KEYS.BURNT_TX, {
+          time: new Date(),
+          value: result.hash,
+        });
         return result.hash;
       } else {
         throw Error("Transaction not successful");
@@ -379,6 +394,7 @@ export class Chain implements chainManagerIface {
       console.log("encodedOrder.length", encodedOrder.length);
       const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
       await tx.wait();
+      this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
       const txReceipt = await this.provider.getTransaction(tx.hash);
       console.log("signer", userAddress);
       console.log("txReceipt", txReceipt);
@@ -412,6 +428,7 @@ export class Chain implements chainManagerIface {
     ).mint_native_token(reason);
     if ("Ok" in result) {
       const txHash = result.Ok;
+      this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: txHash });
       const receipt = await this.provider.getTransactionReceipt(txHash);
       return receipt ?? null;
     }
