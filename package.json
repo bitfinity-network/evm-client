@@ -1,9 +1,16 @@
 {
-  "name": "evm-client",
-  "version": "1.0.0",
+  "name": "@infinityswapofficial/evm-client",
+  "version": "0.0.1",
   "description": "Bitfinity EVM TS Client",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "homepage": "https://bitfinity.network/",
+  "keywords": [
+    "bitfinity evm client",
+    "evm client",
+    "bitfinity"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bitfinity-network/evm-client"
@@ -34,7 +41,7 @@
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
-    "build": "tsup  --format esm,cjs,iife --dts --sourcemap src/index.ts",
+    "build": "tsup --format esm,cjs,iife,umd --dts --sourcemap src/index.ts",
     "changeset": "changeset",
     "release": "yarn build && changeset publish",
     "start": "yarn build -- --watch"
