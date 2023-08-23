@@ -3,7 +3,7 @@ import { Chain } from "../bridge/chain";
 import { Address, Id256, Id256Factory } from "../validation";
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
-import { TEST_TOKEN_PRINCIPAL } from "../constants";
+import { CACHE_KEYS, TEST_TOKEN_PRINCIPAL } from "../constants";
 import { TransactionResponse, ethers } from "ethers";
 jest.setTimeout(30000);
 
@@ -87,10 +87,11 @@ describe("Bridge class", () => {
   });
 
   describe("Get all cached Transaction", () => {
-    it("should return a cached object", async () => {
+    it("should return a cached array", async () => {
       const cachedTxArray = await bridge.getCacheTx();
-      console.log("burn erc20 result", cachedTxArray);
-      expect(cachedTxArray).toEqual(expect.any(Array));
+      const cachedMintTx = await bridge.getCacheTx(CACHE_KEYS.MINT);
+      expect(cachedTxArray.length).toBeGreaterThan(0);
+      expect(cachedMintTx.length).toBeGreaterThan(0);
     });
   });
 });

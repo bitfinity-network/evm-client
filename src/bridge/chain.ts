@@ -36,6 +36,7 @@ import { ActorSubclass } from "@dfinity/agent";
 import { CacheManager } from "./cache";
 import { CACHE_KEYS } from "../constants";
 
+export { CACHE_KEYS };
 export class Chain implements chainManagerIface {
   public minterCanister: string;
   public Ic: IcConnector;
