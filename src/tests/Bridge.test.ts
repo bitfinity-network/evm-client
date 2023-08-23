@@ -85,4 +85,12 @@ describe("Bridge class", () => {
       expect(result).toEqual(expect.any(BigInt));
     });
   });
+
+  describe("Get all cached Transaction", () => {
+    it("should return a cached object", async () => {
+      const cachedTxArray = await bridge.getCacheTx();
+      console.log("burn erc20 result", cachedTxArray);
+      expect(cachedTxArray).toEqual(expect.any(Array));
+    });
+  });
 });

@@ -33,12 +33,15 @@ import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 import erc20TokenAbi from "../abi/erc20Token.json";
 import { ActorSubclass } from "@dfinity/agent";
+import { CacheManager } from "./cache";
+import { CACHE_KEYS } from "../constants";
 
 export class Chain implements chainManagerIface {
   public minterCanister: string;
   public Ic: IcConnector;
   public signer: JsonRpcSigner | Signer;
   public provider: Provider;
+  public cache: CacheManager;
 
   constructor(
     minterCanister: string,
@@ -50,6 +53,7 @@ export class Chain implements chainManagerIface {
     this.Ic = Ic;
     this.signer = signer;
     this.provider = provider;
+    this.cache = new CacheManager(100);
   }
 
   private getActor<T>(
@@ -320,6 +324,13 @@ export class Chain implements chainManagerIface {
       await tx.wait();
       console.log("tx", tx);
       if (tx) {
+        this.cacheTx(CACHE_KEYS.BURNT_TX, {
+          time: new Date(),
+          value: tx.hash,
+          info: {
+            userAddress,
+          },
+        });
         return tx.hash;
       } else {
         throw Error("Transaction not successful");
@@ -436,4 +447,22 @@ export class Chain implements chainManagerIface {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   create_bft_bridge_contract(): Promise<Address> {}
+
+  public cacheTx(key: string, value: object) {
+    const serializedData = this.cache.get(key);
+
+    if (!serializedData) {
+      this.cache.set(key, JSON.stringify([value]));
+    } else {
+      const cachedData = JSON.parse(serializedData);
+      const newCachecData = [...cachedData, value];
+      this.cache.set(key, JSON.stringify(newCachecData));
+    }
+  }
+
+  public getCacheTx(key = CACHE_KEYS.BURNT_TX) {
+    const serializedData = this.cache.get(key);
+    if (serializedData) return JSON.parse(serializedData);
+    return [];
+  }
 }
