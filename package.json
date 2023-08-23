@@ -41,7 +41,7 @@
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
-    "build": "tsup --format esm,cjs,iife,umd --dts --sourcemap src/index.ts",
+    "build": "tsup --format esm,cjs,iife --dts --sourcemap src/index.ts",
     "changeset": "changeset",
     "release": "yarn build && changeset publish",
     "start": "yarn build -- --watch"
