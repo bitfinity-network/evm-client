@@ -6,6 +6,7 @@ import {
   SpenderIDL,
   SpenderService,
 } from "../ic";
+import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
@@ -30,6 +31,7 @@ import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 import erc20TokenAbi from "../abi/erc20Token.json";
+import { ActorSubclass } from "@dfinity/agent";
 
 export class Chain implements chainManagerIface {
   public minterCanister: string;
@@ -49,9 +51,21 @@ export class Chain implements chainManagerIface {
     this.provider = provider;
   }
 
+  private getActor<T>(
+    canisterId: string,
+    interfaceFactory: IDL.InterfaceFactory,
+  ): ActorSubclass<T> {
+    if ("createActor" in this.Ic) {
+      if (this.Ic && this.Ic?.createActor) {
+        return this.Ic.createActor({ canisterId, interfaceFactory });
+      }
+    }
+    return this.Ic.actor(canisterId, interfaceFactory);
+  }
+
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
     const chainId = await this.get_chain_id();
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).get_bft_bridge_contract([chainId]);
@@ -109,8 +123,8 @@ export class Chain implements chainManagerIface {
   public async get_icrc_token_fee(
     principal: Principal,
   ): Promise<number | undefined> {
-    const result = await this.Ic.actor<IcrcService>(
-      principal,
+    const result = await this.getActor<IcrcService>(
+      principal.toText(),
       IcrcIDL,
     ).icrc1_fee();
     if (result) {
@@ -182,7 +196,7 @@ export class Chain implements chainManagerIface {
       },
     };
     console.log("approve args", approve);
-    const approvalResult = await this.Ic.actor<IcrcService>(
+    const approvalResult = await this.getActor<IcrcService>(
       token.toText(),
       IcrcIDL,
     ).icrc2_approve(approve);
@@ -214,7 +228,7 @@ export class Chain implements chainManagerIface {
   public async createMintOrder(
     mintReason: MintReason,
   ): Promise<SignedMintOrder> {
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).create_erc_20_mint_order(mintReason);
@@ -233,7 +247,7 @@ export class Chain implements chainManagerIface {
   ): Promise<bigint | undefined> {
     const chainId = await this.get_chain_id();
     console.log("args", { burnTxHash, amount });
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).approve_icrc_mint(chainId, burnTxHash);
@@ -244,8 +258,8 @@ export class Chain implements chainManagerIface {
       const approvedAmount = Number(result.Ok) - fee!;
       console.log("approved Amount", approvedAmount);
       console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const spenderResult = await this.Ic.actor<SpenderService>(
-        spender_principal,
+      const spenderResult = await this.getActor<SpenderService>(
+        spender_principal.toText(),
         SpenderIDL,
       ).transfer_icrc_tokens(
         chainId,
@@ -380,7 +394,7 @@ export class Chain implements chainManagerIface {
   public async mint_native_tokens(
     reason: MintReason,
   ): Promise<TransactionReceipt | null> {
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).mint_native_token(reason);
