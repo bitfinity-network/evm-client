@@ -23,6 +23,7 @@
     "@babel/preset-env": "^7.22.10",
     "@types/hdkey": "^2.0.1",
     "@types/jest": "^29.5.3",
+    "@types/node": "^20.5.3",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@typescript-eslint/parser": "^6.4.0",
     "babel-jest": "^29.6.2",
@@ -41,7 +42,7 @@
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
-    "build": "tsup --format esm,cjs,iife --dts --sourcemap src/index.ts",
+    "build": "tsup  --format esm,cjs,iife --dts --sourcemap src/index.ts",
     "changeset": "changeset",
     "release": "yarn build && changeset publish",
     "start": "yarn build -- --watch"
