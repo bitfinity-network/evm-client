@@ -35,7 +35,10 @@ export interface EVMBridgeIface {
     amount: number,
   ) => Promise<SwapResult>;
 }
-
+export interface Cache {
+  get(key: string): string | undefined;
+  set(key: string, value: string): void;
+}
 export interface ICEVMBridgeIface {
   swap_ic_to_evm: (
     from_token: Id256,
