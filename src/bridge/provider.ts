@@ -5,12 +5,8 @@ import { QueryFunction } from "./Interfaces";
 class WrappedProvider {
   public provider: Provider;
   constructor(provider: Provider) {
-    this.provider = new Proxy<Provider>(provider, this.createHandler());
-  }
-
-  private createHandler() {
-    return {
-      get: (target: Provider, prop: string, receiver: unknown) => {
+    this.provider = new Proxy<Provider>(provider, {
+      get: (target: Provider, prop: string, receiver) => {
         const value = Reflect.get(target, prop, receiver);
         if (
           typeof value == "function" &&
@@ -47,8 +43,9 @@ class WrappedProvider {
         }
         return typeof value == "function" ? value.bind(target) : value;
       },
-    };
+    });
   }
+
   isQueryMethod(methodName: string): boolean {
     return methodName.includes("get");
   }
