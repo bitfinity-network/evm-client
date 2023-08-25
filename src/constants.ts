@@ -15,3 +15,4 @@ export const CACHE_KEYS = {
   MINT_ORDER: "evm_client_mint_order",
   MINT: "evm_client_mint",
 };
+export const REPLICATED_QUERY_LENGTH = 4;

@@ -35,6 +35,7 @@ import erc20TokenAbi from "../abi/erc20Token.json";
 import { ActorSubclass } from "@dfinity/agent";
 import { CacheManager } from "./cache";
 import { CACHE_KEYS } from "../constants";
+import { WrappedProvider } from "./provider";
 
 export { CACHE_KEYS };
 export class Chain implements chainManagerIface {
@@ -67,6 +68,10 @@ export class Chain implements chainManagerIface {
       }
     }
     return this.Ic.actor(canisterId, interfaceFactory);
+  }
+
+  public wrappedProvider(): Provider {
+    return this.provider;
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
@@ -163,8 +168,8 @@ export class Chain implements chainManagerIface {
 
   async send_notification_tx(notification: string) {
     const userAddress = await this.signer.getAddress();
-    const nonce = await this.provider.getTransactionCount(userAddress);
-    const gasPrice = (await this.provider.getFeeData()).gasPrice;
+    const nonce = await this.wrappedProvider().getTransactionCount(userAddress);
+    const gasPrice = (await this.wrappedProvider().getFeeData()).gasPrice;
     const chainId = await this.get_chain_id();
 
     const transactionArgs = {
@@ -333,16 +338,16 @@ export class Chain implements chainManagerIface {
           gasLimit: 200000,
         },
       );
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: tx.hash,
+        info: {
+          userAddress,
+        },
+      });
       await tx.wait();
       console.log("tx", tx);
       if (tx) {
-        this.cacheTx(CACHE_KEYS.BURNT_TX, {
-          time: new Date(),
-          value: tx.hash,
-          info: {
-            userAddress,
-          },
-        });
         return tx.hash;
       } else {
         throw Error("Transaction not successful");
@@ -367,12 +372,12 @@ export class Chain implements chainManagerIface {
         nonce: await this.get_nonce(),
         gasLimit: 200000,
       });
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: result.hash,
+      });
       await result.wait();
       if (result && result.hash) {
-        this.cacheTx(CACHE_KEYS.BURNT_TX, {
-          time: new Date(),
-          value: result.hash,
-        });
         return result.hash;
       } else {
         throw Error("Transaction not successful");
@@ -396,7 +401,7 @@ export class Chain implements chainManagerIface {
       const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
       await tx.wait();
       this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
-      const txReceipt = await this.provider.getTransaction(tx.hash);
+      const txReceipt = await this.wrappedProvider().getTransaction(tx.hash);
       console.log("signer", userAddress);
       console.log("txReceipt", txReceipt);
       if (txReceipt) {
