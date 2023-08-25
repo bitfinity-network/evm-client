@@ -13,6 +13,8 @@ import {
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
 
+export type QueryFunction<T extends unknown[], R> = (...args: T) => R;
+
 export interface NoficationIface {
   about_tx?: string | null;
   receiver_canister?: string;

@@ -54,7 +54,7 @@ export class Chain implements chainManagerIface {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
     this.signer = signer;
-    this.provider = provider;
+    this.provider = new WrappedProvider(provider).provider;
     this.cache = new CacheManager(100);
   }
 
@@ -71,6 +71,7 @@ export class Chain implements chainManagerIface {
   }
 
   public wrappedProvider(): Provider {
+    // const latestBlockNumber = await this.provider.getBlockNumber()
     return this.provider;
   }
 
