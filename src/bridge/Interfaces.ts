@@ -7,10 +7,13 @@ import {
   Provider,
   TransactionReceipt,
   TransactionResponse,
+  JsonRpcSigner,
 } from "ethers";
 
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
+
+export type QueryFunction<T extends unknown[], R> = (...args: T) => R;
 
 export interface NoficationIface {
   about_tx?: string | null;
@@ -34,7 +37,10 @@ export interface EVMBridgeIface {
     amount: number,
   ) => Promise<SwapResult>;
 }
-
+export interface Cache {
+  get(key: string): string | undefined;
+  set(key: string, value: string): void;
+}
 export interface ICEVMBridgeIface {
   swap_ic_to_evm: (
     from_token: Id256,
@@ -51,7 +57,7 @@ export interface ICEVMBridgeIface {
 export interface chainManagerIface {
   minterCanister: string;
   Ic: IcConnector;
-  signer: Signer;
+  signer: JsonRpcSigner | Signer;
   provider: Provider;
 
   check_erc20_balance: (token: Address) => Promise<number>;

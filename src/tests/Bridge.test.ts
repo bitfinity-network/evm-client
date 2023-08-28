@@ -3,7 +3,7 @@ import { Chain } from "../bridge/chain";
 import { Address, Id256, Id256Factory } from "../validation";
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
-import { TEST_TOKEN_PRINCIPAL } from "../constants";
+import { CACHE_KEYS, TEST_TOKEN_PRINCIPAL } from "../constants";
 import { TransactionResponse, ethers } from "ethers";
 jest.setTimeout(30000);
 
@@ -83,6 +83,15 @@ describe("Bridge class", () => {
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));
+    });
+  });
+
+  describe("Get all cached Transaction", () => {
+    it("should return a cached array", async () => {
+      const cachedTxArray = await bridge.getCacheTx();
+      const cachedMintTx = await bridge.getCacheTx(CACHE_KEYS.MINT);
+      expect(cachedTxArray.length).toBeGreaterThan(0);
+      expect(cachedMintTx.length).toBeGreaterThan(0);
     });
   });
 });

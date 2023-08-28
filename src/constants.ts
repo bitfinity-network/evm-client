@@ -8,3 +8,11 @@ export const LOCAL_TEST_SEED_PHRASE = process.env.LOCAL_TEST_SEED_PHRASE || "";
 export const DEFAULT_IDENTITY = process.env.PEM_FILE_PATH || "";
 export const TEST_TOKEN_PRINCIPAL = caninsterIds.token.local;
 export const MINTER_CANISTER = caninsterIds.minter.local;
+
+// Cache Keys
+export const CACHE_KEYS = {
+  BURNT_TX: "evm_client_burnt_tx_hash",
+  MINT_ORDER: "evm_client_mint_order",
+  MINT: "evm_client_mint",
+};
+export const REPLICATED_QUERY_LENGTH = 4;

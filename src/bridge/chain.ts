@@ -6,6 +6,7 @@ import {
   SpenderIDL,
   SpenderService,
 } from "../ic";
+import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
 import { MintReason } from "../ic/idl/minter/minter.did";
@@ -15,6 +16,7 @@ import {
   Provider,
   TransactionReceipt,
   TransactionResponse,
+  JsonRpcSigner,
 } from "ethers";
 
 import {
@@ -30,28 +32,52 @@ import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 import erc20TokenAbi from "../abi/erc20Token.json";
+import { ActorSubclass } from "@dfinity/agent";
+import { CacheManager } from "./cache";
+import { CACHE_KEYS } from "../constants";
+import { WrappedProvider } from "./provider";
 
+export { CACHE_KEYS };
 export class Chain implements chainManagerIface {
   public minterCanister: string;
   public Ic: IcConnector;
-  public signer: Signer;
+  public signer: JsonRpcSigner | Signer;
   public provider: Provider;
+  public cache: CacheManager;
 
   constructor(
     minterCanister: string,
     Ic: IcConnector,
-    signer: Signer,
+    signer: JsonRpcSigner | Signer,
     provider: Provider,
   ) {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
     this.signer = signer;
-    this.provider = provider;
+    this.provider = new WrappedProvider(provider).provider;
+    this.cache = new CacheManager(100);
+  }
+
+  private getActor<T>(
+    canisterId: string,
+    interfaceFactory: IDL.InterfaceFactory,
+  ): ActorSubclass<T> {
+    if ("createActor" in this.Ic) {
+      if (this.Ic && this.Ic?.createActor) {
+        return this.Ic.createActor({ canisterId, interfaceFactory });
+      }
+    }
+    return this.Ic.actor(canisterId, interfaceFactory);
+  }
+
+  public wrappedProvider(): Provider {
+    // const latestBlockNumber = await this.provider.getBlockNumber()
+    return this.provider;
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
     const chainId = await this.get_chain_id();
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).get_bft_bridge_contract([chainId]);
@@ -109,8 +135,8 @@ export class Chain implements chainManagerIface {
   public async get_icrc_token_fee(
     principal: Principal,
   ): Promise<number | undefined> {
-    const result = await this.Ic.actor<IcrcService>(
-      principal,
+    const result = await this.getActor<IcrcService>(
+      principal.toText(),
       IcrcIDL,
     ).icrc1_fee();
     if (result) {
@@ -143,8 +169,8 @@ export class Chain implements chainManagerIface {
 
   async send_notification_tx(notification: string) {
     const userAddress = await this.signer.getAddress();
-    const nonce = await this.provider.getTransactionCount(userAddress);
-    const gasPrice = (await this.provider.getFeeData()).gasPrice;
+    const nonce = await this.wrappedProvider().getTransactionCount(userAddress);
+    const gasPrice = (await this.wrappedProvider().getFeeData()).gasPrice;
     const chainId = await this.get_chain_id();
 
     const transactionArgs = {
@@ -182,39 +208,46 @@ export class Chain implements chainManagerIface {
       },
     };
     console.log("approve args", approve);
-    const approvalResult = await this.Ic.actor<IcrcService>(
+    const approvalResult = await this.getActor<IcrcService>(
       token.toText(),
       IcrcIDL,
     ).icrc2_approve(approve);
-    console.log("approvalResult", approvalResult);
+    if ("Ok" in approvalResult) {
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: Number(approvalResult.Ok),
+      });
+      console.log("approvalResult", approvalResult);
 
-    const recipient_chain_id = await this.get_chain_id();
-    await this.add_operation_points();
+      const recipient_chain_id = await this.get_chain_id();
+      await this.add_operation_points();
 
-    const tokenAddress = await this.get_wrapped_token_address(
-      Id256Factory.fromPrincipal(token),
-    );
-    console.log("tokenAddress", tokenAddress);
-    if (tokenAddress) {
-      const mintReason: MintReason = {
-        Icrc1Burn: {
-          recipient_chain_id,
-          icrc1_token_principal: token,
-          from_subaccount: [],
-          recipient_address: await this.signer.getAddress(),
-          amount: numberToHex(amount),
-        },
-      };
-      console.log("mintReason", mintReason);
-      return await this.createMintOrder(mintReason);
+      const tokenAddress = await this.get_wrapped_token_address(
+        Id256Factory.fromPrincipal(token),
+      );
+      console.log("tokenAddress", tokenAddress);
+      if (tokenAddress) {
+        const mintReason: MintReason = {
+          Icrc1Burn: {
+            recipient_chain_id,
+            icrc1_token_principal: token,
+            from_subaccount: [],
+            recipient_address: await this.signer.getAddress(),
+            amount: numberToHex(amount),
+          },
+        };
+        console.log("mintReason", mintReason);
+        return await this.createMintOrder(mintReason);
+      }
     }
+
     throw Error("Impossible");
   }
 
   public async createMintOrder(
     mintReason: MintReason,
   ): Promise<SignedMintOrder> {
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).create_erc_20_mint_order(mintReason);
@@ -222,6 +255,10 @@ export class Chain implements chainManagerIface {
       console.log(result.Err);
       throw result.Err;
     }
+    this.cacheTx(CACHE_KEYS.MINT_ORDER, {
+      time: new Date(),
+      value: result.Ok,
+    });
     return ethers.getBytes(new Uint8Array(result.Ok));
   }
 
@@ -233,7 +270,7 @@ export class Chain implements chainManagerIface {
   ): Promise<bigint | undefined> {
     const chainId = await this.get_chain_id();
     console.log("args", { burnTxHash, amount });
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).approve_icrc_mint(chainId, burnTxHash);
@@ -244,8 +281,8 @@ export class Chain implements chainManagerIface {
       const approvedAmount = Number(result.Ok) - fee!;
       console.log("approved Amount", approvedAmount);
       console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const spenderResult = await this.Ic.actor<SpenderService>(
-        spender_principal,
+      const spenderResult = await this.getActor<SpenderService>(
+        spender_principal.toText(),
         SpenderIDL,
       ).transfer_icrc_tokens(
         chainId,
@@ -302,6 +339,13 @@ export class Chain implements chainManagerIface {
           gasLimit: 200000,
         },
       );
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: tx.hash,
+        info: {
+          userAddress,
+        },
+      });
       await tx.wait();
       console.log("tx", tx);
       if (tx) {
@@ -329,6 +373,10 @@ export class Chain implements chainManagerIface {
         nonce: await this.get_nonce(),
         gasLimit: 200000,
       });
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: result.hash,
+      });
       await result.wait();
       if (result && result.hash) {
         return result.hash;
@@ -353,7 +401,8 @@ export class Chain implements chainManagerIface {
       console.log("encodedOrder.length", encodedOrder.length);
       const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
       await tx.wait();
-      const txReceipt = await this.provider.getTransaction(tx.hash);
+      this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
+      const txReceipt = await this.wrappedProvider().getTransaction(tx.hash);
       console.log("signer", userAddress);
       console.log("txReceipt", txReceipt);
       if (txReceipt) {
@@ -380,12 +429,13 @@ export class Chain implements chainManagerIface {
   public async mint_native_tokens(
     reason: MintReason,
   ): Promise<TransactionReceipt | null> {
-    const result = await this.Ic.actor<MinterService>(
+    const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).mint_native_token(reason);
     if ("Ok" in result) {
       const txHash = result.Ok;
+      this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: txHash });
       const receipt = await this.provider.getTransactionReceipt(txHash);
       return receipt ?? null;
     }
@@ -421,4 +471,22 @@ export class Chain implements chainManagerIface {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   create_bft_bridge_contract(): Promise<Address> {}
+
+  public cacheTx(key: string, value: object) {
+    const serializedData = this.cache.get(key);
+
+    if (!serializedData) {
+      this.cache.set(key, JSON.stringify([value]));
+    } else {
+      const cachedData = JSON.parse(serializedData);
+      const newCachecData = [...cachedData, value];
+      this.cache.set(key, JSON.stringify(newCachecData));
+    }
+  }
+
+  public getCacheTx(key = CACHE_KEYS.BURNT_TX) {
+    const serializedData = this.cache.get(key);
+    if (serializedData) return JSON.parse(serializedData);
+    return [];
+  }
 }

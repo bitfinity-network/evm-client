@@ -1,9 +1,16 @@
 {
-  "name": "evm-client",
-  "version": "1.0.0",
+  "name": "@infinityswapofficial/evm-client",
+  "version": "0.0.1",
   "description": "Bitfinity EVM TS Client",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "homepage": "https://bitfinity.network/",
+  "keywords": [
+    "bitfinity evm client",
+    "evm client",
+    "bitfinity"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bitfinity-network/evm-client"
@@ -16,6 +23,7 @@
     "@babel/preset-env": "^7.22.10",
     "@types/hdkey": "^2.0.1",
     "@types/jest": "^29.5.3",
+    "@types/node": "^20.5.3",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@typescript-eslint/parser": "^6.4.0",
     "babel-jest": "^29.6.2",
@@ -59,6 +67,7 @@
     "dotenv": "^16.3.1",
     "ethers": "^6.7.0",
     "hdkey": "^2.1.0",
+    "lru-cache": "^10.0.1",
     "pem-file": "^1.0.1",
     "web3": "0.20.0",
     "web3-core": "1.9.0",

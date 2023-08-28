@@ -7,6 +7,7 @@ import {
   Id256Factory,
 } from "../validation";
 import { TransactionResponse } from "ethers";
+import { CACHE_KEYS } from "../constants";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {
@@ -89,6 +90,14 @@ describe("Bridge class", () => {
     it("should return the wrapped token address", async () => {
       const result = await bridge.mint_erc_20_tokens(burnTxHash!, chainId);
       expect(result).toEqual(expect.any(TransactionResponse));
+    });
+  });
+  describe("Get all cached Transaction", () => {
+    it("should return a cached array", async () => {
+      const cachedTxArray = await bridge.getCacheTx();
+      const cachedMintTx = await bridge.getCacheTx(CACHE_KEYS.MINT);
+      expect(cachedTxArray.length).toBeGreaterThan(0);
+      expect(cachedMintTx.length).toBeGreaterThan(0);
     });
   });
 });

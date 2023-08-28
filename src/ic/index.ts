@@ -36,6 +36,12 @@ interface IcConnectorOptions {
   identity?: Identity | undefined;
   environ?: string;
 }
+
+interface CreateActor {
+  host?: string;
+  canisterId: string;
+  interfaceFactory: IDL.InterfaceFactory;
+}
 export class IcConnector {
   private host: string;
   private identity?: Identity | undefined;
@@ -78,6 +84,9 @@ export class IcConnector {
       canisterId: cid,
     });
   }
+  createActor?: <T = Record<string, ActorMethod>>(
+    args: CreateActor,
+  ) => ActorSubclass<T>;
 }
 
 export { MinterIDL, IcrcIDL, SpenderIDL };
