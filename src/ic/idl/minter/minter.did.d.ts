@@ -46,10 +46,6 @@ export type IcethError =
   | { ServiceUrlHostMissing: null }
   | { ProviderNotFound: null }
   | { NoPermission: null };
-export interface IcrcTransferParams {
-  token: Principal;
-  recipient: Principal;
-}
 export interface InitData {
   evm_chain_id: number;
   evm_gas_price: string;
@@ -90,9 +86,10 @@ export type MintReason =
       Erc20Burn: { burn_tx_hash: string; chain_id: number };
     }
   | {
-      Icrc1Burn: {
+      Icrc2Burn: {
         recipient_chain_id: number;
         icrc1_token_principal: Principal;
+        operation_id: number;
         from_subaccount: [] | [Uint8Array | number[]];
         recipient_address: string;
         amount: string;
@@ -102,7 +99,8 @@ export interface OperationPricing {
   erc20_mint: number;
   evm_registration: number;
   evmc_notification: number;
-  icrc_mint: number;
+  icrc_mint_approval: number;
+  icrc_transfer: number;
 }
 export type RejectionCode =
   | { NoError: null }
@@ -168,25 +166,21 @@ export type TransferFromError =
   | { TooOld: null }
   | { InsufficientFunds: { balance: bigint } };
 export interface _SERVICE {
-  approve_icrc_mint: ActorMethod<[number, string], Result>;
+  approve_icrc2_mint: ActorMethod<[number, string], Result>;
   create_erc_20_mint_order: ActorMethod<[MintReason], Result_1>;
   get_bft_bridge_contract: ActorMethod<[[] | [number]], [] | [string]>;
   get_curr_metrics: ActorMethod<[], MetricsData>;
   get_evm_principal: ActorMethod<[], Principal>;
-  get_icrc_transfer_params: ActorMethod<
-    [number, string],
-    [] | [IcrcTransferParams]
-  >;
   get_metrics: ActorMethod<[], MetricsStorage>;
-  get_mint_orders: ActorMethod<
-    [Uint8Array | number[], Uint8Array | number[]],
-    Array<[number, Uint8Array | number[]]>
-  >;
   get_minter_canister_evm_address: ActorMethod<[], Result_2>;
   get_operation_pricing: ActorMethod<[], OperationPricing>;
   get_owner: ActorMethod<[], Principal>;
   get_user_operation_points: ActorMethod<[[] | [Principal]], number>;
   ic_logs: ActorMethod<[bigint], Result_3>;
+  list_mint_orders: ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Array<[number, Uint8Array | number[]]>
+  >;
   mint_native_token: ActorMethod<[MintReason], Result_2>;
   minter_eth_address: ActorMethod<[], Result_2>;
   on_evm_transaction_notification: ActorMethod<
@@ -199,6 +193,7 @@ export interface _SERVICE {
   set_logger_filter: ActorMethod<[string], Result_4>;
   set_operation_pricing: ActorMethod<[OperationPricing], Result_4>;
   set_owner: ActorMethod<[Principal], Result_4>;
+  transfer_icrc2: ActorMethod<[number, string, bigint], Result>;
 }
 
 type T0 = Parameters<IDL.InterfaceFactory>;
