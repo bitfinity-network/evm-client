@@ -2,7 +2,12 @@ import { Address, Id256, SignedMintOrder } from "../validation";
 import { MintReason } from "../ic/idl/minter/minter.did";
 import { Principal } from "@dfinity/principal";
 import { IcConnector } from "../ic";
-import { Signer, ethers, Provider, TransactionReceipt } from "ethers";
+import {
+  Signer,
+  Provider,
+  TransactionReceipt,
+  TransactionResponse,
+} from "ethers";
 
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
@@ -26,7 +31,7 @@ export interface EVMBridgeIface {
   swap_evm_tokens: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
 }
 
@@ -34,12 +39,12 @@ export interface ICEVMBridgeIface {
   swap_ic_to_evm: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
   swap_evm_to_ic: (
     from_token: Id256,
     to_token: Id256,
-    amount: number
+    amount: number,
   ) => Promise<SwapResult>;
 }
 
@@ -57,32 +62,33 @@ export interface chainManagerIface {
 
   burn_icrc2_tokens: (
     token: Principal,
-    amount: number
+    amount: number,
   ) => Promise<SignedMintOrder>;
 
   get_chain_id: () => Promise<number>;
 
   burn_erc_20_tokens: (
     from_token: Address,
-    dstToken: Id256,
-    recipient: Id256,
-    dstChainId: number,
-    amount: number
+    amount: number,
+    chainId: number,
   ) => Promise<TxHash | undefined>;
 
   burn_native_tokens: (
-    dstToken: Id256,
     recipient: Id256,
     dstChainId: number,
-    amount: number
+    amount: number,
   ) => Promise<TxHash | undefined>;
 
   mint_erc_20_tokens: (
     burn_tx_hash: TxHash,
-    chain_id: number
-  ) => Promise<TransactionReceipt>;
+    chain_id: number,
+  ) => Promise<TransactionResponse | undefined>;
 
-  mintOrder: (encodedOrder: SignedMintOrder) => Promise<TransactionReceipt>;
+  mintOrder: (
+    encodedOrder: SignedMintOrder,
+  ) => Promise<TransactionResponse | undefined>;
 
-  mint_native_tokens: (reason: MintReason) => Promise<TransactionReceipt>;
+  mint_native_tokens: (
+    reason: MintReason,
+  ) => Promise<TransactionReceipt | null>;
 }

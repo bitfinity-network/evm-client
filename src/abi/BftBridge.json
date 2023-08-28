@@ -142,6 +142,24 @@
   {
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "recipientID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "toChainID",
+        "type": "uint32"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
@@ -157,32 +175,14 @@
         "type": "bytes32"
       },
       {
-        "internalType": "bytes32",
-        "name": "toToken",
-        "type": "bytes32"
+        "internalType": "uint32",
+        "name": "toChainID",
+        "type": "uint32"
       }
     ],
     "name": "burn",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "recipientID",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "toToken",
-        "type": "bytes32"
-      }
-    ],
-    "name": "burn",
-    "outputs": [],
-    "stateMutability": "payable",
     "type": "function"
   },
   {
