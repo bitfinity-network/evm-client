@@ -67,3 +67,31 @@ import {Id256Factory} from "@infinityswapofficial/evm-client";
 const chain_id = 355113
 tokenInId256 = Id256Factory.fromAddress(new AddressWithChainID(erc20TokenAddress, chain_id))
 ```
+
+### Burning icrc Tokens
+Burns a specified amount of ICRC tokens to initiate the creation of an ERC20 mint order. Operation_id is a unique number to add to your burn. This can be used to retrieve a burn or initialize one in case something goes wrong. You can generate one using `bridge.generateOperationId()` or use your own format.
+
+```js
+    const signedMintOrder = await bridge.burn_icrc2_tokens(
+        TOKEN_PRINCIPAL,
+        1000000,
+        operation_id,
+    );
+```
+
+### Mint ERC20 Token
+Mints ERC20 tokens on the EVM chain using a previously generated mint order.
+
+```js
+    const signedMintOrder = await bridge.mintOrder(signedMintOrder);
+```
+
+### Get all cached Transations
+Retrieves cached transactions, including mint transactions.
+
+```js
+    const cachedMintTx = await bridge.getCacheTx(); // get burnt transaction hash
+    const cachedMintTx = await bridge.getCacheTx("evm_client_mint"); // get mint results
+    const cachedMintTx = await bridge.getCacheTx("evm_client_mint_order"); // get mint order
+
+```
