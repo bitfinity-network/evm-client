@@ -48,9 +48,12 @@ describe("Bridge class", () => {
 
   describe("burn icrc tokens and create erc20 mint order", () => {
     it("should return Ok result", async () => {
+      const operation_id = bridge.generateOperationId();
+      console.log("operation_id", operation_id);
       const result = await bridge.burn_icrc2_tokens(
         Principal.fromText(canisterIds.token.local),
         1000000,
+        operation_id,
       );
       signedMintOrder = result;
       expect(result).toEqual(expect.any(Uint8Array));

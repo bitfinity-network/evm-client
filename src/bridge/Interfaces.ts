@@ -69,6 +69,7 @@ export interface chainManagerIface {
   burn_icrc2_tokens: (
     token: Principal,
     amount: number,
+    operation_id: number,
   ) => Promise<SignedMintOrder>;
 
   get_chain_id: () => Promise<number>;

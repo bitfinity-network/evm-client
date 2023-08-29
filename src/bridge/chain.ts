@@ -1,11 +1,4 @@
-import {
-  IcConnector,
-  IcrcIDL,
-  MinterIDL,
-  MinterService,
-  SpenderIDL,
-  SpenderService,
-} from "../ic";
+import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
@@ -186,12 +179,13 @@ export class Chain implements chainManagerIface {
     const tx = await this.signer.sendTransaction(transactionArgs);
     console.log("result", tx);
     const receipt = await tx.wait();
-    console.log("receipt", receipt);
+    return receipt;
   }
 
   public async burn_icrc2_tokens(
     token: Principal,
     amount: number,
+    operation_id: number,
   ): Promise<SignedMintOrder> {
     const fee = await this.get_icrc_token_fee(token);
     const approve: ApproveArgs = {
@@ -228,8 +222,9 @@ export class Chain implements chainManagerIface {
       console.log("tokenAddress", tokenAddress);
       if (tokenAddress) {
         const mintReason: MintReason = {
-          Icrc1Burn: {
+          Icrc2Burn: {
             recipient_chain_id,
+            operation_id,
             icrc1_token_principal: token,
             from_subaccount: [],
             recipient_address: await this.signer.getAddress(),
@@ -273,22 +268,18 @@ export class Chain implements chainManagerIface {
     const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).approve_icrc_mint(chainId, burnTxHash);
+    ).approve_icrc2_mint(chainId, burnTxHash);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
       const fee = await this.get_icrc_token_fee(icrcToken);
       const approvedAmount = Number(result.Ok) - fee!;
       console.log("approved Amount", approvedAmount);
-      console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const spenderResult = await this.getActor<SpenderService>(
-        spender_principal.toText(),
-        SpenderIDL,
-      ).transfer_icrc_tokens(
-        chainId,
-        burnTxHash,
-        "0x" + approvedAmount.toString(16),
-      );
+      //console.log("approved Amount", "0x" + approvedAmount.toString(16));
+      const spenderResult = await this.getActor<MinterService>(
+        this.minterCanister,
+        MinterIDL,
+      ).transfer_icrc2(chainId, burnTxHash, BigInt(approvedAmount));
       console.log("spenderResult", spenderResult);
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
@@ -488,5 +479,14 @@ export class Chain implements chainManagerIface {
     const serializedData = this.cache.get(key);
     if (serializedData) return JSON.parse(serializedData);
     return [];
+  }
+
+  public generateOperationId() {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 0x100000000);
+    const machineIdentifier = 0x12345678;
+
+    const uniqueId = (timestamp + randomNum + machineIdentifier) % 0x100000000;
+    return uniqueId;
   }
 }
