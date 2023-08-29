@@ -484,9 +484,7 @@ export class Chain implements chainManagerIface {
   public generateOperationId() {
     const timestamp = Date.now();
     const randomNum = Math.floor(Math.random() * 0x100000000);
-    const machineIdentifier = 0x12345678;
-
-    const uniqueId = (timestamp + randomNum + machineIdentifier) % 0x100000000;
+    const uniqueId = (timestamp + randomNum) % 0x100000000;
     return uniqueId;
   }
 }
