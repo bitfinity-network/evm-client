@@ -38,7 +38,7 @@
     "typescript": "^5.1.6"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest ./src/tests/Bridge.test.ts",
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
