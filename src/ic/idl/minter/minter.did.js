@@ -1,4 +1,31 @@
 export const idlFactory = ({ IDL }) => {
+  const SigningKeyId = IDL.Variant({
+    'Dfx': IDL.Null,
+    'Production': IDL.Null,
+    'Test': IDL.Null,
+  });
+  const SigningStrategy = IDL.Variant({
+    'Local': IDL.Record({ 'private_key': IDL.Vec(IDL.Nat8) }),
+    'ManagementCanister': IDL.Record({ 'key_id': SigningKeyId }),
+  });
+  const LogSettings = IDL.Record({
+    'log_filter': IDL.Opt(IDL.Text),
+    'in_memory_records': IDL.Opt(IDL.Nat64),
+    'enable_console': IDL.Bool,
+  });
+  const Duration = IDL.Record({ 'secs': IDL.Nat64, 'nanos': IDL.Nat32 });
+  const InitData = IDL.Record({
+    'evm_chain_id': IDL.Nat32,
+    'evm_gas_price': IDL.Text,
+    'evm_principal': IDL.Principal,
+    'signing_strategy': SigningStrategy,
+    'owner': IDL.Principal,
+    'spender_principal': IDL.Principal,
+    'iceth_principal': IDL.Principal,
+    'bft_bridge_contract': IDL.Opt(IDL.Text),
+    'log_settings': IDL.Opt(LogSettings),
+    'process_transactions_results_interval': IDL.Opt(Duration),
+  });
   const ApproveError = IDL.Variant({
     'GenericError': IDL.Record({
       'message': IDL.Text,
@@ -27,40 +54,12 @@ export const idlFactory = ({ IDL }) => {
     'TooOld': IDL.Null,
     'InsufficientFunds': IDL.Record({ 'balance': IDL.Nat }),
   });
-  const RejectionCode = IDL.Variant({
-    'NoError': IDL.Null,
-    'CanisterError': IDL.Null,
-    'SysTransient': IDL.Null,
-    'DestinationInvalid': IDL.Null,
-    'Unknown': IDL.Null,
-    'SysFatal': IDL.Null,
-    'CanisterReject': IDL.Null,
-  });
-  const IcethError = IDL.Variant({
-    'ServiceUrlHostNotAllowed': IDL.Null,
-    'HttpRequestError': IDL.Record({
-      'code': IDL.Nat32,
-      'message': IDL.Text,
-    }),
-    'TooFewCycles': IDL.Text,
-    'ServiceUrlParseError': IDL.Null,
-    'ServiceUrlHostMissing': IDL.Null,
-    'ProviderNotFound': IDL.Null,
-    'NoPermission': IDL.Null,
-  });
   const Error = IDL.Variant({
-    'CallFailed': IDL.Tuple(RejectionCode, IDL.Text),
-    'JsonRpcFailure': IDL.Text,
-    'IcethError': IcethError,
-    'SerializationError': IDL.Text,
-  });
-  const Error_1 = IDL.Variant({
     'Internal': IDL.Text,
     'InvalidNonce': IDL.Record({ 'got': IDL.Nat64, 'minimum': IDL.Nat64 }),
     'InvalidBurnTransaction': IDL.Text,
-    'EvmAlreadyRegistered': IDL.Text,
     'Icrc2ApproveError': ApproveError,
-    'UnknownExternalEvm': IDL.Nat32,
+    'BftBridgeAlreadyRegistered': IDL.Text,
     'Icrc2TransferFromError': TransferFromError,
     'NotAuthorized': IDL.Null,
     'AnonymousPrincipal': IDL.Null,
@@ -70,26 +69,18 @@ export const idlFactory = ({ IDL }) => {
       'got': IDL.Nat32,
       'expected': IDL.Nat32,
     }),
-    'EvmNotFound': IDL.Nat32,
     'InvalidBftBridgeContract': IDL.Null,
-    'ExternalEvmError': Error,
   });
-  const Result = IDL.Variant({ 'Ok': IDL.Nat, 'Err': Error_1 });
-  const MintReason = IDL.Variant({
-    'Erc20Burn': IDL.Record({
-      'burn_tx_hash': IDL.Text,
-      'chain_id': IDL.Nat32,
-    }),
-    'Icrc2Burn': IDL.Record({
-      'recipient_chain_id': IDL.Nat32,
-      'icrc1_token_principal': IDL.Principal,
-      'operation_id': IDL.Nat32,
-      'from_subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)),
-      'recipient_address': IDL.Text,
-      'amount': IDL.Text,
-    }),
+  const Result = IDL.Variant({ 'Ok': IDL.Nat, 'Err': Error });
+  const Icrc2Burn = IDL.Record({
+    'recipient_chain_id': IDL.Nat32,
+    'operation_id': IDL.Nat32,
+    'from_subaccount': IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'icrc2_token_principal': IDL.Principal,
+    'recipient_address': IDL.Text,
+    'amount': IDL.Text,
   });
-  const Result_1 = IDL.Variant({ 'Ok': IDL.Vec(IDL.Nat8), 'Err': Error_1 });
+  const Result_1 = IDL.Variant({ 'Ok': IDL.Vec(IDL.Nat8), 'Err': Error });
   const MetricsData = IDL.Record({
     'stable_memory_size': IDL.Nat64,
     'cycles': IDL.Nat64,
@@ -108,7 +99,7 @@ export const idlFactory = ({ IDL }) => {
     'history_length_nanos': IDL.Nat64,
   });
   const MetricsStorage = IDL.Record({ 'metrics': MetricsMap });
-  const Result_2 = IDL.Variant({ 'Ok': IDL.Text, 'Err': Error_1 });
+  const Result_2 = IDL.Variant({ 'Ok': IDL.Text, 'Err': Error });
   const OperationPricing = IDL.Record({
     'erc20_mint': IDL.Nat32,
     'evm_registration': IDL.Nat32,
@@ -116,7 +107,7 @@ export const idlFactory = ({ IDL }) => {
     'icrc_mint_approval': IDL.Nat32,
     'icrc_transfer': IDL.Nat32,
   });
-  const Result_3 = IDL.Variant({ 'Ok': IDL.Vec(IDL.Text), 'Err': Error_1 });
+  const Result_3 = IDL.Variant({ 'Ok': IDL.Vec(IDL.Text), 'Err': Error });
   const TransactionReceiptLog = IDL.Record({
     'transactionHash': IDL.Text,
     'blockNumber': IDL.Text,
@@ -146,15 +137,11 @@ export const idlFactory = ({ IDL }) => {
     'contractAddress': IDL.Opt(IDL.Text),
     'gasUsed': IDL.Opt(IDL.Text),
   });
-  const Result_4 = IDL.Variant({ 'Ok': IDL.Null, 'Err': Error_1 });
+  const Result_4 = IDL.Variant({ 'Ok': IDL.Null, 'Err': Error });
   return IDL.Service({
     'approve_icrc2_mint': IDL.Func([IDL.Nat32, IDL.Text], [Result], []),
-    'create_erc_20_mint_order': IDL.Func([MintReason], [Result_1], []),
-    'get_bft_bridge_contract': IDL.Func(
-      [IDL.Opt(IDL.Nat32)],
-      [IDL.Opt(IDL.Text)],
-      ['query'],
-    ),
+    'create_erc_20_mint_order': IDL.Func([Icrc2Burn], [Result_1], []),
+    'get_bft_bridge_contract': IDL.Func([], [IDL.Opt(IDL.Text)], ['query']),
     'get_curr_metrics': IDL.Func([], [MetricsData], ['query']),
     'get_evm_principal': IDL.Func([], [IDL.Principal], ['query']),
     'get_metrics': IDL.Func([], [MetricsStorage], ['query']),
@@ -172,15 +159,13 @@ export const idlFactory = ({ IDL }) => {
       [IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Vec(IDL.Nat8)))],
       ['query'],
     ),
-    'mint_native_token': IDL.Func([MintReason], [Result_2], []),
     'minter_eth_address': IDL.Func([], [Result_2], []),
     'on_evm_transaction_notification': IDL.Func(
       [IDL.Opt(TransactionReceipt), IDL.Vec(IDL.Nat8)],
       [IDL.Opt(IDL.Null)],
       [],
     ),
-    'register_evm_bft_bridge': IDL.Func([IDL.Text], [Result_4], []),
-    'register_external_evm': IDL.Func([IDL.Text, IDL.Text], [Result_4], []),
+    'register_evmc_bft_bridge': IDL.Func([IDL.Text], [Result_4], []),
     'set_evm_principal': IDL.Func([IDL.Principal], [Result_4], []),
     'set_logger_filter': IDL.Func([IDL.Text], [Result_4], []),
     'set_operation_pricing': IDL.Func([OperationPricing], [Result_4], []),
@@ -188,4 +173,33 @@ export const idlFactory = ({ IDL }) => {
     'transfer_icrc2': IDL.Func([IDL.Nat32, IDL.Text, IDL.Nat], [Result], []),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => {
+  const SigningKeyId = IDL.Variant({
+    'Dfx': IDL.Null,
+    'Production': IDL.Null,
+    'Test': IDL.Null,
+  });
+  const SigningStrategy = IDL.Variant({
+    'Local': IDL.Record({ 'private_key': IDL.Vec(IDL.Nat8) }),
+    'ManagementCanister': IDL.Record({ 'key_id': SigningKeyId }),
+  });
+  const LogSettings = IDL.Record({
+    'log_filter': IDL.Opt(IDL.Text),
+    'in_memory_records': IDL.Opt(IDL.Nat64),
+    'enable_console': IDL.Bool,
+  });
+  const Duration = IDL.Record({ 'secs': IDL.Nat64, 'nanos': IDL.Nat32 });
+  const InitData = IDL.Record({
+    'evm_chain_id': IDL.Nat32,
+    'evm_gas_price': IDL.Text,
+    'evm_principal': IDL.Principal,
+    'signing_strategy': SigningStrategy,
+    'owner': IDL.Principal,
+    'spender_principal': IDL.Principal,
+    'iceth_principal': IDL.Principal,
+    'bft_bridge_contract': IDL.Opt(IDL.Text),
+    'log_settings': IDL.Opt(LogSettings),
+    'process_transactions_results_interval': IDL.Opt(Duration),
+  });
+  return [InitData];
+};

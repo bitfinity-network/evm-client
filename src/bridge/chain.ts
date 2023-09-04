@@ -2,7 +2,7 @@ import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
 import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
-import { MintReason } from "../ic/idl/minter/minter.did";
+import { Icrc2Burn } from "../ic/idl/minter/minter.did";
 import {
   Signer,
   ethers,
@@ -69,11 +69,10 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
-    const chainId = await this.get_chain_id();
     const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).get_bft_bridge_contract([chainId]);
+    ).get_bft_bridge_contract();
     console.log("bft bridge contract address", result);
     if (result.length) {
       return new Address(result[0]);
@@ -221,15 +220,13 @@ export class Chain implements chainManagerIface {
       );
       console.log("tokenAddress", tokenAddress);
       if (tokenAddress) {
-        const mintReason: MintReason = {
-          Icrc2Burn: {
-            recipient_chain_id,
-            operation_id,
-            icrc1_token_principal: token,
-            from_subaccount: [],
-            recipient_address: await this.signer.getAddress(),
-            amount: numberToHex(amount),
-          },
+        const mintReason: Icrc2Burn = {
+          recipient_chain_id,
+          operation_id,
+          icrc2_token_principal: token,
+          from_subaccount: [],
+          recipient_address: await this.signer.getAddress(),
+          amount: numberToHex(amount),
         };
         console.log("mintReason", mintReason);
         return await this.createMintOrder(mintReason);
@@ -240,7 +237,7 @@ export class Chain implements chainManagerIface {
   }
 
   public async createMintOrder(
-    mintReason: MintReason,
+    mintReason: Icrc2Burn,
   ): Promise<SignedMintOrder> {
     const result = await this.getActor<MinterService>(
       this.minterCanister,
@@ -402,7 +399,7 @@ export class Chain implements chainManagerIface {
     }
   }
 
-  public async mint_erc_20_tokens(
+  /*   public async mint_erc_20_tokens(
     burn_tx_hash: TxHash,
     burn_chain_id: number,
   ): Promise<TransactionResponse | undefined> {
@@ -415,9 +412,9 @@ export class Chain implements chainManagerIface {
     };
     const order: SignedMintOrder = await this.createMintOrder(reason);
     return await this.mintOrder(order);
-  }
+  } */
 
-  public async mint_native_tokens(
+  /*   public async mint_native_tokens(
     reason: MintReason,
   ): Promise<TransactionReceipt | null> {
     const result = await this.getActor<MinterService>(
@@ -431,7 +428,7 @@ export class Chain implements chainManagerIface {
       return receipt ?? null;
     }
     throw Error("Not found");
-  }
+  } */
 
   public async get_chain_id(): Promise<number> {
     const { chainId } = await this.provider.getNetwork();

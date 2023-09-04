@@ -18,34 +18,26 @@ export interface Duration {
   nanos: number;
 }
 export type Error =
-  | { CallFailed: [RejectionCode, string] }
-  | { JsonRpcFailure: string }
-  | { IcethError: IcethError }
-  | { SerializationError: string };
-export type Error_1 =
   | { Internal: string }
   | { InvalidNonce: { got: bigint; minimum: bigint } }
   | { InvalidBurnTransaction: string }
-  | { EvmAlreadyRegistered: string }
   | { Icrc2ApproveError: ApproveError }
-  | { UnknownExternalEvm: number }
+  | { BftBridgeAlreadyRegistered: string }
   | { Icrc2TransferFromError: TransferFromError }
   | { NotAuthorized: null }
   | { AnonymousPrincipal: null }
   | { BftBridgeDoesNotExist: null }
   | { JsonRpcCallFailed: string }
   | { InsufficientOperationPoints: { got: number; expected: number } }
-  | { EvmNotFound: number }
-  | { InvalidBftBridgeContract: null }
-  | { ExternalEvmError: Error };
-export type IcethError =
-  | { ServiceUrlHostNotAllowed: null }
-  | { HttpRequestError: { code: number; message: string } }
-  | { TooFewCycles: string }
-  | { ServiceUrlParseError: null }
-  | { ServiceUrlHostMissing: null }
-  | { ProviderNotFound: null }
-  | { NoPermission: null };
+  | { InvalidBftBridgeContract: null };
+export interface Icrc2Burn {
+  recipient_chain_id: number;
+  operation_id: number;
+  from_subaccount: [] | [Uint8Array | number[]];
+  icrc2_token_principal: Principal;
+  recipient_address: string;
+  amount: string;
+}
 export interface InitData {
   evm_chain_id: number;
   evm_gas_price: string;
@@ -54,6 +46,7 @@ export interface InitData {
   owner: Principal;
   spender_principal: Principal;
   iceth_principal: Principal;
+  bft_bridge_contract: [] | [string];
   log_settings: [] | [LogSettings];
   process_transactions_results_interval: [] | [Duration];
 }
@@ -81,20 +74,6 @@ export interface MetricsMap {
 export interface MetricsStorage {
   metrics: MetricsMap;
 }
-export type MintReason =
-  | {
-      Erc20Burn: { burn_tx_hash: string; chain_id: number };
-    }
-  | {
-      Icrc2Burn: {
-        recipient_chain_id: number;
-        icrc1_token_principal: Principal;
-        operation_id: number;
-        from_subaccount: [] | [Uint8Array | number[]];
-        recipient_address: string;
-        amount: string;
-      };
-    };
 export interface OperationPricing {
   erc20_mint: number;
   evm_registration: number;
@@ -102,19 +81,11 @@ export interface OperationPricing {
   icrc_mint_approval: number;
   icrc_transfer: number;
 }
-export type RejectionCode =
-  | { NoError: null }
-  | { CanisterError: null }
-  | { SysTransient: null }
-  | { DestinationInvalid: null }
-  | { Unknown: null }
-  | { SysFatal: null }
-  | { CanisterReject: null };
-export type Result = { Ok: bigint } | { Err: Error_1 };
-export type Result_1 = { Ok: Uint8Array | number[] } | { Err: Error_1 };
-export type Result_2 = { Ok: string } | { Err: Error_1 };
-export type Result_3 = { Ok: Array<string> } | { Err: Error_1 };
-export type Result_4 = { Ok: null } | { Err: Error_1 };
+export type Result = { Ok: bigint } | { Err: Error };
+export type Result_1 = { Ok: Uint8Array | number[] } | { Err: Error };
+export type Result_2 = { Ok: string } | { Err: Error };
+export type Result_3 = { Ok: Array<string> } | { Err: Error };
+export type Result_4 = { Ok: null } | { Err: Error };
 export type SigningKeyId =
   | { Dfx: null }
   | { Production: null }
@@ -167,8 +138,8 @@ export type TransferFromError =
   | { InsufficientFunds: { balance: bigint } };
 export interface _SERVICE {
   approve_icrc2_mint: ActorMethod<[number, string], Result>;
-  create_erc_20_mint_order: ActorMethod<[MintReason], Result_1>;
-  get_bft_bridge_contract: ActorMethod<[[] | [number]], [] | [string]>;
+  create_erc_20_mint_order: ActorMethod<[Icrc2Burn], Result_1>;
+  get_bft_bridge_contract: ActorMethod<[], [] | [string]>;
   get_curr_metrics: ActorMethod<[], MetricsData>;
   get_evm_principal: ActorMethod<[], Principal>;
   get_metrics: ActorMethod<[], MetricsStorage>;
@@ -181,14 +152,12 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[]],
     Array<[number, Uint8Array | number[]]>
   >;
-  mint_native_token: ActorMethod<[MintReason], Result_2>;
   minter_eth_address: ActorMethod<[], Result_2>;
   on_evm_transaction_notification: ActorMethod<
     [[] | [TransactionReceipt], Uint8Array | number[]],
     [] | [null]
   >;
-  register_evm_bft_bridge: ActorMethod<[string], Result_4>;
-  register_external_evm: ActorMethod<[string, string], Result_4>;
+  register_evmc_bft_bridge: ActorMethod<[string], Result_4>;
   set_evm_principal: ActorMethod<[Principal], Result_4>;
   set_logger_filter: ActorMethod<[string], Result_4>;
   set_operation_pricing: ActorMethod<[OperationPricing], Result_4>;
