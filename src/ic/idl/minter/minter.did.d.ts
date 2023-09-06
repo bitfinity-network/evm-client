@@ -20,7 +20,6 @@ export interface Duration {
 export type Error =
   | { Internal: string }
   | { InvalidNonce: { got: bigint; minimum: bigint } }
-  | { InvalidBurnTransaction: string }
   | { Icrc2ApproveError: ApproveError }
   | { BftBridgeAlreadyRegistered: string }
   | { Icrc2TransferFromError: TransferFromError }
@@ -29,7 +28,8 @@ export type Error =
   | { BftBridgeDoesNotExist: null }
   | { JsonRpcCallFailed: string }
   | { InsufficientOperationPoints: { got: number; expected: number } }
-  | { InvalidBftBridgeContract: null };
+  | { InvalidBftBridgeContract: null }
+  | { InvalidBurnOperation: string };
 export interface Icrc2Burn {
   recipient_chain_id: number;
   operation_id: number;
@@ -78,14 +78,16 @@ export interface OperationPricing {
   erc20_mint: number;
   evm_registration: number;
   evmc_notification: number;
+  endpoint_query: number;
   icrc_mint_approval: number;
   icrc_transfer: number;
 }
 export type Result = { Ok: bigint } | { Err: Error };
 export type Result_1 = { Ok: Uint8Array | number[] } | { Err: Error };
-export type Result_2 = { Ok: string } | { Err: Error };
-export type Result_3 = { Ok: Array<string> } | { Err: Error };
-export type Result_4 = { Ok: null } | { Err: Error };
+export type Result_2 = { Ok: [] | [string] } | { Err: Error };
+export type Result_3 = { Ok: string } | { Err: Error };
+export type Result_4 = { Ok: Array<string> } | { Err: Error };
+export type Result_5 = { Ok: null } | { Err: Error };
 export type SigningKeyId =
   | { Dfx: null }
   | { Production: null }
@@ -137,32 +139,35 @@ export type TransferFromError =
   | { TooOld: null }
   | { InsufficientFunds: { balance: bigint } };
 export interface _SERVICE {
-  approve_icrc2_mint: ActorMethod<[number, string], Result>;
+  approve_icrc2_mint: ActorMethod<[string, number], Result>;
   create_erc_20_mint_order: ActorMethod<[Icrc2Burn], Result_1>;
-  get_bft_bridge_contract: ActorMethod<[], [] | [string]>;
+  get_bft_bridge_contract: ActorMethod<[], Result_2>;
   get_curr_metrics: ActorMethod<[], MetricsData>;
   get_evm_principal: ActorMethod<[], Principal>;
   get_metrics: ActorMethod<[], MetricsStorage>;
-  get_minter_canister_evm_address: ActorMethod<[], Result_2>;
+  get_minter_canister_evm_address: ActorMethod<[], Result_3>;
   get_operation_pricing: ActorMethod<[], OperationPricing>;
   get_owner: ActorMethod<[], Principal>;
   get_user_operation_points: ActorMethod<[[] | [Principal]], number>;
-  ic_logs: ActorMethod<[bigint], Result_3>;
+  ic_logs: ActorMethod<[bigint], Result_4>;
   list_mint_orders: ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Array<[number, Uint8Array | number[]]>
   >;
-  minter_eth_address: ActorMethod<[], Result_2>;
+  minter_eth_address: ActorMethod<[], Result_3>;
   on_evm_transaction_notification: ActorMethod<
     [[] | [TransactionReceipt], Uint8Array | number[]],
     [] | [null]
   >;
-  register_evmc_bft_bridge: ActorMethod<[string], Result_4>;
-  set_evm_principal: ActorMethod<[Principal], Result_4>;
-  set_logger_filter: ActorMethod<[string], Result_4>;
-  set_operation_pricing: ActorMethod<[OperationPricing], Result_4>;
-  set_owner: ActorMethod<[Principal], Result_4>;
-  transfer_icrc2: ActorMethod<[number, string, bigint], Result>;
+  register_evmc_bft_bridge: ActorMethod<[string], Result_5>;
+  set_evm_principal: ActorMethod<[Principal], Result_5>;
+  set_logger_filter: ActorMethod<[string], Result_5>;
+  set_operation_pricing: ActorMethod<[OperationPricing], Result_5>;
+  set_owner: ActorMethod<[Principal], Result_5>;
+  transfer_icrc2: ActorMethod<
+    [number, string, Principal, Principal, bigint],
+    Result
+  >;
 }
 
 type T0 = Parameters<IDL.InterfaceFactory>;
