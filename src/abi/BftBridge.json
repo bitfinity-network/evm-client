@@ -15,12 +15,6 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      },
-      {
-        "indexed": false,
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
@@ -34,35 +28,23 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "recipientID",
+        "name": "recipient",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "toToken",
+        "name": "dstToken",
         "type": "bytes32"
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
-        "name": "name",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes16",
-        "name": "symbol",
-        "type": "bytes16"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "decimals",
-        "type": "uint8"
+        "internalType": "uint32",
+        "name": "chainId",
+        "type": "uint32"
       }
     ],
-    "name": "BurnTokenEvent",
+    "name": "Burnt",
     "type": "event"
   },
   {
@@ -77,19 +59,13 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "fromToken",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "senderID",
+        "name": "sender",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "toERC20",
+        "name": "erc20",
         "type": "address"
       },
       {
@@ -103,9 +79,15 @@
         "internalType": "uint32",
         "name": "nonce",
         "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "senderChainId",
+        "type": "uint32"
       }
     ],
-    "name": "MintTokenEvent",
+    "name": "Minted",
     "type": "event"
   },
   {
@@ -126,36 +108,18 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "baseTokenID",
+        "name": "externalToken",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "wrappedERC20",
+        "name": "wrappedAddress",
         "type": "address"
       }
     ],
-    "name": "WrappedTokenDeployedEvent",
+    "name": "NewWrappedToken",
     "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "recipientID",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "toChainID",
-        "type": "uint32"
-      }
-    ],
-    "name": "burn",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
   },
   {
     "inputs": [
@@ -171,18 +135,46 @@
       },
       {
         "internalType": "bytes32",
-        "name": "recipientID",
+        "name": "recipient",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dstToken",
         "type": "bytes32"
       },
       {
         "internalType": "uint32",
-        "name": "toChainID",
+        "name": "chainId",
         "type": "uint32"
       }
     ],
     "name": "burn",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "recipient",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dstToken",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "chainId",
+        "type": "uint32"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -199,7 +191,7 @@
       },
       {
         "internalType": "bytes32",
-        "name": "baseTokenID",
+        "name": "externalToken",
         "type": "bytes32"
       }
     ],
@@ -244,7 +236,7 @@
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "baseTokenID",
+        "name": "externalToken",
         "type": "bytes32"
       }
     ],
@@ -283,44 +275,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "source",
-        "type": "string"
-      }
-    ],
-    "name": "stringToBytes32",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "result",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "input",
-        "type": "string"
-      }
-    ],
-    "name": "truncateUTF8",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "result",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
     "type": "function"
   }
 ]
