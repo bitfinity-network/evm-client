@@ -12,6 +12,7 @@ describe("Bridge class", () => {
   let signedMintOrder: ethers.BytesLike;
   let ercToken: Address;
   let tokenInId256: Id256;
+  let operation_id: number;
   let burnTxHash: string | undefined;
 
   beforeAll(async () => {
@@ -25,6 +26,14 @@ describe("Bridge class", () => {
   afterAll(() => {
     jest.clearAllMocks();
   });
+
+  /*  describe("Add Operation points", () => {
+    it("should return the bridge contract address", async () => {
+      await bridge.add_operation_points();
+
+      //expect(result).toEqual(expect.any(Address));
+    });
+  }); */
 
   describe("get_bft_bridge_contract", () => {
     it("should return the bridge contract address", async () => {
@@ -48,7 +57,7 @@ describe("Bridge class", () => {
 
   describe("burn icrc tokens and create erc20 mint order", () => {
     it("should return Ok result", async () => {
-      const operation_id = bridge.generateOperationId();
+      operation_id = bridge.generateOperationId();
       const result = await bridge.burn_icrc2_tokens(
         Principal.fromText(canisterIds.token.local),
         1000000,
@@ -80,7 +89,7 @@ describe("Bridge class", () => {
       const result = await bridge.mint_icrc_tokens(
         burnTxHash!,
         1000000,
-        Principal.fromText(canisterIds.spender.local),
+        operation_id,
         Principal.fromText(canisterIds.token.local),
       );
       console.log("mint icrc result", result);

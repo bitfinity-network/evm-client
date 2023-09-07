@@ -69,13 +69,15 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
+    await this.add_operation_points();
     const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     ).get_bft_bridge_contract();
     console.log("bft bridge contract address", result);
-    if (result.length) {
-      return new Address(result[0]);
+    if ("Ok" in result) {
+      const address = result.Ok.length ? result.Ok[0] : "";
+      return new Address(address);
     }
     return undefined;
   }
@@ -84,6 +86,7 @@ export class Chain implements chainManagerIface {
     fromToken: Id256,
   ): Promise<Address | undefined> {
     const bridge = await this.get_bft_bridge_contract();
+
     if (bridge) {
       const contract = new ethers.Contract(
         bridge?.getAddress(),
@@ -104,8 +107,11 @@ export class Chain implements chainManagerIface {
     symbol: string,
     fromToken: Id256,
   ): Promise<Address> {
+    console.log("getting wrapped token");
     const bridge = await this.get_bft_bridge_contract();
+    console.log("getting bridge address");
     const bridgeAddress = bridge?.getAddress();
+    console.log("getting wrapped token");
     let tokenAddress = await this.get_wrapped_token_address(fromToken);
 
     if (!tokenAddress && bridgeAddress) {
@@ -153,10 +159,7 @@ export class Chain implements chainManagerIface {
       "evm_canister_notification_needed",
       [tx_hash, receiver_canister, user_data],
     );
-    console.log("encodedData", encodedData);
-
-    const notify_tx_hash = await this.send_notification_tx(encodedData);
-    console.log("notify_tx_hash", notify_tx_hash);
+    await this.send_notification_tx(encodedData);
   }
 
   async send_notification_tx(notification: string) {
@@ -257,15 +260,16 @@ export class Chain implements chainManagerIface {
   public async mint_icrc_tokens(
     burnTxHash: string,
     amount: number,
-    spender_principal: Principal,
+    operation_id: number,
     icrcToken: Principal,
   ): Promise<bigint | undefined> {
-    const chainId = await this.get_chain_id();
+    const userAddress = await this.signer.getAddress();
+
     console.log("args", { burnTxHash, amount });
     const result = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).approve_icrc2_mint(chainId, burnTxHash);
+    ).approve_icrc2_mint(userAddress, operation_id);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
@@ -276,7 +280,13 @@ export class Chain implements chainManagerIface {
       const spenderResult = await this.getActor<MinterService>(
         this.minterCanister,
         MinterIDL,
-      ).transfer_icrc2(chainId, burnTxHash, BigInt(approvedAmount));
+      ).transfer_icrc2(
+        operation_id,
+        userAddress,
+        icrcToken,
+        this.Ic.getPrincipal()!,
+        BigInt(approvedAmount),
+      );
       console.log("spenderResult", spenderResult);
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
@@ -289,58 +299,66 @@ export class Chain implements chainManagerIface {
     amount: number,
     chainId: number = 0,
   ): Promise<TxHash | undefined> {
-    const bridge = await this.get_bft_bridge_contract();
-    const bridgeAddress = bridge?.getAddress();
-    if (bridgeAddress) {
-      const bftContract = new ethers.Contract(
-        bridgeAddress,
-        BftBridgeABI,
-        this.signer,
-      );
-      const WrappedTokenContract = new ethers.Contract(
-        from_token.getAddress(),
-        WrappedTokenABI,
-        this.signer,
-      );
-      const userAddress = await this.signer.getAddress();
+    try {
+      const bridge = await this.get_bft_bridge_contract();
+      const bridgeAddress = bridge?.getAddress();
+      if (bridgeAddress) {
+        const bftContract = new ethers.Contract(
+          bridgeAddress,
+          BftBridgeABI,
+          this.signer,
+        );
+        const WrappedTokenContract = new ethers.Contract(
+          from_token.getAddress(),
+          WrappedTokenABI,
+          this.signer,
+        );
+        const userAddress = await this.signer.getAddress();
 
-      const approveTx = await WrappedTokenContract.approve(
-        bridgeAddress,
-        String(amount),
-        { nonce: await this.get_nonce() },
-      );
-      await approveTx.wait();
-
-      console.log("approvedTransfer", approveTx);
-
-      const recipient = chainId
-        ? Id256Factory.fromAddress(new AddressWithChainID(userAddress, chainId))
-        : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
-
-      const tx = await bftContract.burn(
-        Number(amount),
-        from_token.getAddress(),
-        recipient,
-        chainId,
-        {
-          nonce: await this.get_nonce(),
-          gasLimit: 200000,
-        },
-      );
-      this.cacheTx(CACHE_KEYS.BURNT_TX, {
-        time: new Date(),
-        value: tx.hash,
-        info: {
-          userAddress,
-        },
-      });
-      await tx.wait();
-      console.log("tx", tx);
-      if (tx) {
-        return tx.hash;
-      } else {
-        throw Error("Transaction not successful");
+        const approveTx = await WrappedTokenContract.approve(
+          bridgeAddress,
+          String(amount),
+          { nonce: await this.get_nonce() },
+        );
+        await approveTx.wait();
+        const txReceipt = await this.wrappedProvider().getTransaction(
+          approveTx.hash,
+        );
+        console.log("approvedTransfer", txReceipt);
+        console.log("Burn ERC 20 Tokens");
+        const recipient = chainId
+          ? Id256Factory.fromAddress(
+              new AddressWithChainID(userAddress, chainId),
+            )
+          : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
+        const tx = await bftContract.burn(
+          Number(amount),
+          from_token.getAddress(),
+          recipient,
+          chainId,
+          {
+            nonce: await this.get_nonce(),
+            gasLimit: 200000,
+          },
+        );
+        this.cacheTx(CACHE_KEYS.BURNT_TX, {
+          time: new Date(),
+          value: tx.hash,
+          info: {
+            userAddress,
+          },
+        });
+        await tx.wait();
+        console.log("transaction after burn", tx);
+        if (tx) {
+          console.log("burnt transaction hash", tx.hash);
+          return tx.hash;
+        } else {
+          throw Error("Transaction not successful");
+        }
       }
+    } catch (error) {
+      console.log("burn error", error);
     }
   }
 

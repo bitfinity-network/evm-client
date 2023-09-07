@@ -15,6 +15,12 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
@@ -28,23 +34,35 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "recipient",
+        "name": "recipientID",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "dstToken",
+        "name": "toToken",
         "type": "bytes32"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
-        "name": "chainId",
-        "type": "uint32"
+        "internalType": "bytes32",
+        "name": "name",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes16",
+        "name": "symbol",
+        "type": "bytes16"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
       }
     ],
-    "name": "Burnt",
+    "name": "BurnTokenEvent",
     "type": "event"
   },
   {
@@ -59,13 +77,19 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "sender",
+        "name": "fromToken",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "senderID",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "erc20",
+        "name": "toERC20",
         "type": "address"
       },
       {
@@ -79,15 +103,9 @@
         "internalType": "uint32",
         "name": "nonce",
         "type": "uint32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint32",
-        "name": "senderChainId",
-        "type": "uint32"
       }
     ],
-    "name": "Minted",
+    "name": "MintTokenEvent",
     "type": "event"
   },
   {
@@ -108,18 +126,62 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "externalToken",
+        "name": "baseTokenID",
         "type": "bytes32"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "wrappedAddress",
+        "name": "wrappedERC20",
         "type": "address"
       }
     ],
-    "name": "NewWrappedToken",
+    "name": "WrappedTokenDeployedEvent",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "NATIVE_ADDRESS",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "NO_TOKEN_ADDRESS",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "recipientID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "toChainID",
+        "type": "uint32"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
     "inputs": [
@@ -135,46 +197,24 @@
       },
       {
         "internalType": "bytes32",
-        "name": "recipient",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "dstToken",
+        "name": "recipientID",
         "type": "bytes32"
       },
       {
         "internalType": "uint32",
-        "name": "chainId",
+        "name": "toChainID",
         "type": "uint32"
       }
     ],
     "name": "burn",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "recipient",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "dstToken",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "chainId",
-        "type": "uint32"
-      }
-    ],
-    "name": "burn",
-    "outputs": [],
-    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -191,7 +231,7 @@
       },
       {
         "internalType": "bytes32",
-        "name": "externalToken",
+        "name": "baseTokenID",
         "type": "bytes32"
       }
     ],
@@ -201,6 +241,25 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "operationID",
+        "type": "uint32"
+      }
+    ],
+    "name": "finishBurn",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "nonpayable",
@@ -235,8 +294,67 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "operationID",
+        "type": "uint32"
+      }
+    ],
+    "name": "getPendingBurnInfo",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "fromERC20",
+        "type": "address"
+      },
+      {
         "internalType": "bytes32",
-        "name": "externalToken",
+        "name": "recipientID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "toToken",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "name",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes16",
+        "name": "symbol",
+        "type": "bytes16"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "baseTokenID",
         "type": "bytes32"
       }
     ],
@@ -249,6 +367,49 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "begin",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "end",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct BFTBridge.RingBuffer",
+        "name": "buffer",
+        "type": "tuple"
+      }
+    ],
+    "name": "increment",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "begin",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "end",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct BFTBridge.RingBuffer",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -275,6 +436,93 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "operationIDCounter",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "begin",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "end",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct BFTBridge.RingBuffer",
+        "name": "buffer",
+        "type": "tuple"
+      }
+    ],
+    "name": "size",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "chainID",
+        "type": "uint32"
+      },
+      {
+        "internalType": "address",
+        "name": "toAddress",
+        "type": "address"
+      }
+    ],
+    "name": "toIDfromBaseAddress",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "toID",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "input",
+        "type": "string"
+      }
+    ],
+    "name": "truncateUTF8",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "result",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
     "type": "function"
   }
 ]
