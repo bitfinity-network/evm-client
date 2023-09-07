@@ -3,12 +3,12 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "name",
+        "name": "name_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "symbol",
+        "name": "symbol_",
         "type": "string"
       },
       {
@@ -228,17 +228,17 @@
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "name",
+        "name": "name_",
         "type": "bytes32"
       },
       {
         "internalType": "bytes16",
-        "name": "symbol",
+        "name": "symbol_",
         "type": "bytes16"
       },
       {
         "internalType": "uint8",
-        "name": "decimals",
+        "name": "decimals_",
         "type": "uint8"
       }
     ],

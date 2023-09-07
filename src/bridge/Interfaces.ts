@@ -69,6 +69,7 @@ export interface chainManagerIface {
   burn_icrc2_tokens: (
     token: Principal,
     amount: number,
+    operation_id: number,
   ) => Promise<SignedMintOrder>;
 
   get_chain_id: () => Promise<number>;
@@ -85,16 +86,16 @@ export interface chainManagerIface {
     amount: number,
   ) => Promise<TxHash | undefined>;
 
-  mint_erc_20_tokens: (
+  /*   mint_erc_20_tokens: (
     burn_tx_hash: TxHash,
     chain_id: number,
-  ) => Promise<TransactionResponse | undefined>;
+  ) => Promise<TransactionResponse | undefined>; */
 
   mintOrder: (
     encodedOrder: SignedMintOrder,
   ) => Promise<TransactionResponse | undefined>;
 
-  mint_native_tokens: (
+  /*   mint_native_tokens: (
     reason: MintReason,
-  ) => Promise<TransactionReceipt | null>;
+  ) => Promise<TransactionReceipt | null>; */
 }
