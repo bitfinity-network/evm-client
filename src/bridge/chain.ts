@@ -338,7 +338,7 @@ export class Chain implements chainManagerIface {
           chainId,
           {
             nonce: await this.get_nonce(),
-            gasLimit: 200000,
+            gasLimit: 350000,
           },
         );
         this.cacheTx(CACHE_KEYS.BURNT_TX, {
