@@ -78,7 +78,7 @@ export interface chainManagerIface {
     from_token: Address,
     amount: number,
     chainId: number,
-  ) => Promise<TxHash | undefined>;
+  ) => Promise<string | undefined>;
 
   burn_native_tokens: (
     recipient: Id256,
