@@ -1,6 +1,6 @@
 {
   "name": "@infinityswapofficial/evm-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Bitfinity EVM TS Client",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@babel/core": "^7.22.10",
     "@babel/preset-env": "^7.22.10",
+    "@changesets/cli": "^2.26.2",
     "@types/hdkey": "^2.0.1",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.5.3",
