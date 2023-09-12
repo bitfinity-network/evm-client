@@ -1,5 +1,17 @@
 # @infinityswapofficial/evm-client
 
+## 0.1.5
+
+### Patch Changes
+
+- added mjs file types\
+
+## 0.1.4
+
+### Patch Changes
+
+- removed unused modules
+
 ## 0.1.3
 
 ### Patch Changes
