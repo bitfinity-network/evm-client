@@ -57,16 +57,16 @@ export class Chain implements chainManagerIface {
     this.cache = new CacheManager(100);
   }
 
-  private getActor<T>(
+  private async getActor<T>(
     canisterId: string,
     interfaceFactory: IDL.InterfaceFactory,
-  ): ActorSubclass<T> {
+  ): Promise<ActorSubclass<T>> {
     if ("createActor" in this.Ic) {
       if (this.Ic && this.Ic?.createActor) {
-        return this.Ic.createActor({ canisterId, interfaceFactory });
+        return await this.Ic.createActor({ canisterId, interfaceFactory });
       }
     }
-    return this.Ic.actor(canisterId, interfaceFactory);
+    return await this.Ic.actor(canisterId, interfaceFactory);
   }
 
   public wrappedProvider(): Provider {
@@ -76,10 +76,11 @@ export class Chain implements chainManagerIface {
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
     await this.add_operation_points();
-    const result = await this.getActor<MinterService>(
+    const minterActor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).get_bft_bridge_contract();
+    );
+    const result = await minterActor.get_bft_bridge_contract();
     if ("Ok" in result) {
       const address = result.Ok.length ? result.Ok[0] : "";
       return new Address(address);
@@ -138,10 +139,8 @@ export class Chain implements chainManagerIface {
   public async get_icrc_token_fee(
     principal: Principal,
   ): Promise<number | undefined> {
-    const result = await this.getActor<IcrcService>(
-      principal.toText(),
-      IcrcIDL,
-    ).icrc1_fee();
+    const actor = await this.getActor<IcrcService>(principal.toText(), IcrcIDL);
+    const result = await actor.icrc1_fee();
     if (result) {
       return Number(result);
     }
@@ -209,10 +208,8 @@ export class Chain implements chainManagerIface {
       },
     };
     console.log("approve args", approve);
-    const approvalResult = await this.getActor<IcrcService>(
-      token.toText(),
-      IcrcIDL,
-    ).icrc2_approve(approve);
+    const icrcActor = await this.getActor<IcrcService>(token.toText(), IcrcIDL);
+    const approvalResult = await icrcActor.icrc2_approve(approve);
     if ("Ok" in approvalResult) {
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
         time: new Date(),
@@ -247,10 +244,11 @@ export class Chain implements chainManagerIface {
   public async createMintOrder(
     mintReason: Icrc2Burn,
   ): Promise<SignedMintOrder> {
-    const result = await this.getActor<MinterService>(
+    const minterActor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).create_erc_20_mint_order(mintReason);
+    );
+    const result = await minterActor.create_erc_20_mint_order(mintReason);
     if ("Err" in result) {
       console.log(result.Err);
       throw result.Err;
@@ -269,10 +267,11 @@ export class Chain implements chainManagerIface {
     const userAddress = await this.signer.getAddress();
 
     console.log("args", { userAddress, operation_id });
-    const result = await this.getActor<MinterService>(
+    const actor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).approve_icrc2_mint(userAddress, operation_id);
+    );
+    const result = await actor.approve_icrc2_mint(userAddress, operation_id);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
@@ -281,10 +280,11 @@ export class Chain implements chainManagerIface {
       const approvedAmount = Number(result.Ok) - fee!;
       console.log("approved Amount", approvedAmount);
       //console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const spenderResult = await this.getActor<MinterService>(
+      const actor = await this.getActor<MinterService>(
         this.minterCanister,
         MinterIDL,
-      ).transfer_icrc2(
+      );
+      const spenderResult = await actor.transfer_icrc2(
         operation_id,
         userAddress,
         icrcToken,
@@ -365,10 +365,11 @@ export class Chain implements chainManagerIface {
     evm_canister_id: Principal,
     hash: string,
   ): Promise<number | undefined> {
-    const result = await this.getActor<EvmService>(
+    const actor = await this.getActor<EvmService>(
       evm_canister_id.toString(),
       EvmIDL,
-    ).eth_get_transaction_receipt(hash);
+    );
+    const result = await actor.eth_get_transaction_receipt(hash);
     if ("Ok" in result) {
       const { Ok } = result;
       if (Ok.length) {
