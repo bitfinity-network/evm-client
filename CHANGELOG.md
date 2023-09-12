@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.1.6
+
+### Patch Changes
+
+- b947d21: Handled exception for Ic instance from wallet
+
 ## 0.1.5
 
 ### Patch Changes
