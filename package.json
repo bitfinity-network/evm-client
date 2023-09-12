@@ -1,6 +1,6 @@
 {
   "name": "@infinityswapofficial/evm-client",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Bitfinity EVM TS Client",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
@@ -43,7 +43,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
     "build": "tsup src/index.ts --format esm,cjs,iife --dts --sourcemap ",
-    "changeset": "changeset",
+    "changeset": "yarn build && changeset",
     "release": "yarn build && changeset publish",
     "start": "yarn build -- --watch"
   },

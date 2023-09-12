@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.1.7
+
+### Patch Changes
+
+- updated package.json
+
 ## 0.1.6
 
 ### Patch Changes
