@@ -23,6 +23,11 @@ import {
   _SERVICE as SpenderService,
 } from "./idl/spender/spender.did";
 
+import {
+  idlFactory as EvmIDL,
+  _SERVICE as EvmService,
+} from "./idl/evm/evm.did";
+
 const IC_HOST = "http://127.0.0.1:4943/";
 const IC_ENVIRON = "local";
 
@@ -89,5 +94,5 @@ export class IcConnector {
   ) => ActorSubclass<T>;
 }
 
-export { MinterIDL, IcrcIDL, SpenderIDL };
-export type { MinterService, IcrcService, SpenderService };
+export { MinterIDL, IcrcIDL, SpenderIDL, EvmIDL };
+export type { MinterService, IcrcService, SpenderService, EvmService };

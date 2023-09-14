@@ -1,6 +1,6 @@
 {
   "name": "@infinityswapofficial/evm-client",
-  "version": "0.0.1",
+  "version": "0.1.7",
   "description": "Bitfinity EVM TS Client",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
@@ -16,11 +16,11 @@
     "url": "https://github.com/bitfinity-network/evm-client"
   },
   "author": "Bitfinity",
-  "type": "module",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.22.10",
     "@babel/preset-env": "^7.22.10",
+    "@changesets/cli": "^2.26.2",
     "@types/hdkey": "^2.0.1",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.5.3",
@@ -42,15 +42,15 @@
     "lint": "eslint ./src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "watch": "tsup --watch",
-    "build": "tsup  --format esm,cjs,iife --dts --sourcemap src/index.ts",
-    "changeset": "changeset",
+    "build": "tsup src/index.ts --format esm,cjs,iife --dts --sourcemap ",
+    "changeset": "yarn build && changeset",
     "release": "yarn build && changeset publish",
     "start": "yarn build -- --watch"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },

@@ -1,4 +1,11 @@
-import { IcConnector, IcrcIDL, MinterIDL, MinterService } from "../ic";
+import {
+  EvmIDL,
+  EvmService,
+  IcConnector,
+  IcrcIDL,
+  MinterIDL,
+  MinterService,
+} from "../ic";
 import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
@@ -7,7 +14,6 @@ import {
   Signer,
   ethers,
   Provider,
-  TransactionReceipt,
   TransactionResponse,
   JsonRpcSigner,
 } from "ethers";
@@ -51,16 +57,16 @@ export class Chain implements chainManagerIface {
     this.cache = new CacheManager(100);
   }
 
-  private getActor<T>(
+  private async getActor<T>(
     canisterId: string,
     interfaceFactory: IDL.InterfaceFactory,
-  ): ActorSubclass<T> {
+  ): Promise<ActorSubclass<T>> {
     if ("createActor" in this.Ic) {
       if (this.Ic && this.Ic?.createActor) {
-        return this.Ic.createActor({ canisterId, interfaceFactory });
+        return await this.Ic.createActor({ canisterId, interfaceFactory });
       }
     }
-    return this.Ic.actor(canisterId, interfaceFactory);
+    return await this.Ic.actor(canisterId, interfaceFactory);
   }
 
   public wrappedProvider(): Provider {
@@ -70,11 +76,11 @@ export class Chain implements chainManagerIface {
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
     await this.add_operation_points();
-    const result = await this.getActor<MinterService>(
+    const minterActor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).get_bft_bridge_contract();
-    console.log("bft bridge contract address", result);
+    );
+    const result = await minterActor.get_bft_bridge_contract();
     if ("Ok" in result) {
       const address = result.Ok.length ? result.Ok[0] : "";
       return new Address(address);
@@ -133,10 +139,8 @@ export class Chain implements chainManagerIface {
   public async get_icrc_token_fee(
     principal: Principal,
   ): Promise<number | undefined> {
-    const result = await this.getActor<IcrcService>(
-      principal.toText(),
-      IcrcIDL,
-    ).icrc1_fee();
+    const actor = await this.getActor<IcrcService>(principal.toText(), IcrcIDL);
+    const result = await actor.icrc1_fee();
     if (result) {
       return Number(result);
     }
@@ -204,10 +208,8 @@ export class Chain implements chainManagerIface {
       },
     };
     console.log("approve args", approve);
-    const approvalResult = await this.getActor<IcrcService>(
-      token.toText(),
-      IcrcIDL,
-    ).icrc2_approve(approve);
+    const icrcActor = await this.getActor<IcrcService>(token.toText(), IcrcIDL);
+    const approvalResult = await icrcActor.icrc2_approve(approve);
     if ("Ok" in approvalResult) {
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
         time: new Date(),
@@ -242,10 +244,11 @@ export class Chain implements chainManagerIface {
   public async createMintOrder(
     mintReason: Icrc2Burn,
   ): Promise<SignedMintOrder> {
-    const result = await this.getActor<MinterService>(
+    const minterActor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).create_erc_20_mint_order(mintReason);
+    );
+    const result = await minterActor.create_erc_20_mint_order(mintReason);
     if ("Err" in result) {
       console.log(result.Err);
       throw result.Err;
@@ -258,29 +261,30 @@ export class Chain implements chainManagerIface {
   }
 
   public async mint_icrc_tokens(
-    burnTxHash: string,
-    amount: number,
     operation_id: number,
     icrcToken: Principal,
   ): Promise<bigint | undefined> {
     const userAddress = await this.signer.getAddress();
 
-    console.log("args", { burnTxHash, amount });
-    const result = await this.getActor<MinterService>(
+    console.log("args", { userAddress, operation_id });
+    const actor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
-    ).approve_icrc2_mint(userAddress, operation_id);
+    );
+    const result = await actor.approve_icrc2_mint(userAddress, operation_id);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
+      await this.finish_burn(operation_id);
       const fee = await this.get_icrc_token_fee(icrcToken);
       const approvedAmount = Number(result.Ok) - fee!;
       console.log("approved Amount", approvedAmount);
       //console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const spenderResult = await this.getActor<MinterService>(
+      const actor = await this.getActor<MinterService>(
         this.minterCanister,
         MinterIDL,
-      ).transfer_icrc2(
+      );
+      const spenderResult = await actor.transfer_icrc2(
         operation_id,
         userAddress,
         icrcToken,
@@ -298,67 +302,105 @@ export class Chain implements chainManagerIface {
     from_token: Address,
     amount: number,
     chainId: number = 0,
-  ): Promise<TxHash | undefined> {
-    try {
-      const bridge = await this.get_bft_bridge_contract();
-      const bridgeAddress = bridge?.getAddress();
-      if (bridgeAddress) {
-        const bftContract = new ethers.Contract(
-          bridgeAddress,
-          BftBridgeABI,
-          this.signer,
-        );
-        const WrappedTokenContract = new ethers.Contract(
-          from_token.getAddress(),
-          WrappedTokenABI,
-          this.signer,
-        );
-        const userAddress = await this.signer.getAddress();
+  ): Promise<string | undefined> {
+    const bridge = await this.get_bft_bridge_contract();
+    const bridgeAddress = bridge?.getAddress();
+    if (bridgeAddress) {
+      const bftContract = new ethers.Contract(
+        bridgeAddress,
+        BftBridgeABI,
+        this.signer,
+      );
+      const WrappedTokenContract = new ethers.Contract(
+        from_token.getAddress(),
+        WrappedTokenABI,
+        this.signer,
+      );
+      const userAddress = await this.signer.getAddress();
 
-        const approveTx = await WrappedTokenContract.approve(
-          bridgeAddress,
-          String(amount),
-          { nonce: await this.get_nonce() },
-        );
-        await approveTx.wait();
-        const txReceipt = await this.wrappedProvider().getTransaction(
-          approveTx.hash,
-        );
-        console.log("approvedTransfer", txReceipt);
-        console.log("Burn ERC 20 Tokens");
-        const recipient = chainId
-          ? Id256Factory.fromAddress(
-              new AddressWithChainID(userAddress, chainId),
-            )
-          : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
-        const tx = await bftContract.burn(
-          Number(amount),
-          from_token.getAddress(),
-          recipient,
-          chainId,
-          {
-            nonce: await this.get_nonce(),
-            gasLimit: 350000,
-          },
-        );
-        this.cacheTx(CACHE_KEYS.BURNT_TX, {
-          time: new Date(),
-          value: tx.hash,
-          info: {
-            userAddress,
-          },
-        });
-        await tx.wait();
-        console.log("transaction after burn", tx);
-        if (tx) {
-          console.log("burnt transaction hash", tx.hash);
-          return tx.hash;
-        } else {
-          throw Error("Transaction not successful");
-        }
+      const approveTx = await WrappedTokenContract.approve(
+        bridgeAddress,
+        String(amount),
+        { nonce: await this.get_nonce() },
+      );
+      await approveTx.wait();
+      const txReceipt = await this.wrappedProvider().getTransaction(
+        approveTx.hash,
+      );
+      console.log("approvedTransfer", txReceipt);
+      console.log("Burn ERC 20 Tokens");
+      const recipient = chainId
+        ? Id256Factory.fromAddress(new AddressWithChainID(userAddress, chainId))
+        : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
+      const tx = await bftContract.burn(
+        Number(amount),
+        from_token.getAddress(),
+        recipient,
+        chainId,
+        {
+          nonce: await this.get_nonce(),
+          gasLimit: 350000,
+        },
+      );
+      this.cacheTx(CACHE_KEYS.BURNT_TX, {
+        time: new Date(),
+        value: tx.hash,
+        info: {
+          userAddress,
+        },
+      });
+      await tx.wait();
+
+      //decode data
+
+      if (tx) {
+        return tx.hash;
+      } else {
+        throw Error("Transaction not successful");
       }
-    } catch (error) {
-      console.log("burn error", error);
+    }
+  }
+
+  public async get_operation_id(
+    evm_canister_id: Principal,
+    hash: string,
+  ): Promise<number | undefined> {
+    const actor = await this.getActor<EvmService>(
+      evm_canister_id.toString(),
+      EvmIDL,
+    );
+    const result = await actor.eth_get_transaction_receipt(hash);
+    if ("Ok" in result) {
+      const { Ok } = result;
+      if (Ok.length) {
+        console.log("output number", Ok[0].output[0] as number[]);
+        const blobData = Ok[0].output[0] as number[];
+        const numberArray = Array.from(blobData);
+        const numberString = numberArray.join("");
+        const operation_id = parseInt(numberString, 10);
+        return operation_id;
+      }
+    }
+  }
+
+  public async finish_burn(
+    operation_id: number,
+  ): Promise<TransactionResponse | undefined> {
+    const bridgeAddress = await this.get_bft_bridge_contract();
+
+    const nonce = await this.get_nonce();
+    if (bridgeAddress && bridgeAddress.getAddress()) {
+      const bridge = new ethers.Contract(
+        bridgeAddress.getAddress(),
+        BftBridgeABI,
+        this.signer,
+      );
+      const tx = await bridge.finishBurn(operation_id, {
+        nonce,
+        gasLimit: 200000,
+      });
+      await tx.wait();
+      return tx;
     }
   }
 
@@ -396,7 +438,6 @@ export class Chain implements chainManagerIface {
     encodedOrder: SignedMintOrder,
   ): Promise<TransactionResponse | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
-    const userAddress = await this.signer.getAddress();
     const nonce = await this.get_nonce();
     if (bridgeAddress && bridgeAddress.getAddress()) {
       const bridge = new ethers.Contract(
@@ -404,13 +445,10 @@ export class Chain implements chainManagerIface {
         BftBridgeABI,
         this.signer,
       );
-      console.log("encodedOrder.length", encodedOrder.length);
       const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
       await tx.wait();
       this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
       const txReceipt = await this.wrappedProvider().getTransaction(tx.hash);
-      console.log("signer", userAddress);
-      console.log("txReceipt", txReceipt);
       if (txReceipt) {
         return txReceipt;
       }

@@ -79,16 +79,24 @@ describe("Bridge class", () => {
   describe("burn erc20 token", () => {
     it("should return hash string", async () => {
       burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, 0);
-      console.log("burn erc20 result", burnTxHash);
       expect(burnTxHash).toEqual(expect.any(String));
+    });
+  });
+
+  describe("Get Operation id from burnt transaction hash", () => {
+    it("should return a number", async () => {
+      const result = await bridge.get_operation_id(
+        Principal.fromText(canisterIds.evm.local),
+        burnTxHash!,
+      );
+      operation_id = result ?? 0;
+      expect(operation_id).toEqual(expect.any(Number));
     });
   });
 
   describe("mint icrc tokens after burning erc20 token", () => {
     it("should return Ok result", async () => {
       const result = await bridge.mint_icrc_tokens(
-        burnTxHash!,
-        1000000,
         operation_id,
         Principal.fromText(canisterIds.token.local),
       );
