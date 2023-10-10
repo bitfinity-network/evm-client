@@ -325,15 +325,13 @@ export class Chain implements chainManagerIface {
           this.signer,
         );
         const userAddress = await this.signer.getAddress();
-        const name = await WrappedTokenContract.name();
-        console.log("token name", name);
+
         const approveTx = await WrappedTokenContract.approve(
           bridgeAddress,
           String(amount),
-          { nonce: await this.get_nonce() },
         );
 
-        approve = await approveTx.wait();
+        const _ = await approveTx.wait();
         const txReceipt = await this.wrappedProvider().getTransaction(
           approveTx.hash,
         );

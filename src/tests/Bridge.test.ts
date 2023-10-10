@@ -80,7 +80,7 @@ describe("Bridge class", () => {
     it("should return hash string", async () => {
       burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, 0);
       expect(burnTxHash).toEqual(expect.any(String));
-    });
+    }, 60000);
   });
 
   describe("Get Operation id from burnt transaction hash", () => {
@@ -102,7 +102,7 @@ describe("Bridge class", () => {
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));
-    });
+    }, 60000);
   });
 
   describe("Get all cached Transaction", () => {
