@@ -26,12 +26,7 @@ import {
   Id256Factory,
   SignedMintOrder,
 } from "../validation";
-import {
-  ChainConfig,
-  chainManagerIface,
-  IcWithBatchTransactions,
-  TxHash,
-} from "./Interfaces";
+import { ChainConfig, chainManagerIface, TxHash } from "./Interfaces";
 import { numberToHex } from "web3-utils";
 import { ApproveArgs, ApproveResult } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
@@ -214,7 +209,7 @@ export class Chain implements chainManagerIface {
 
   public async burn_icrc2_tokens_in_batch(
     tokenPrincipal: string,
-    args: ApproveArgs,
+    approveArgs: ApproveArgs,
     mintReason: Icrc2Burn,
   ): Promise<SignedMintOrder> {
     return new Promise<SignedMintOrder>((resolve, reject) => {
@@ -226,7 +221,7 @@ export class Chain implements chainManagerIface {
             idl: IcrcIDL,
             canisterId: tokenPrincipal,
             methodName: "icrc2_approve",
-            args: [args],
+            args: [approveArgs],
             onSuccess: async (approvalResult: ApproveResult) => {
               if ("Ok" in approvalResult) {
                 this.cacheTx(CACHE_KEYS.BURNT_TX, {
@@ -267,6 +262,7 @@ export class Chain implements chainManagerIface {
     operation_id: number,
   ): Promise<SignedMintOrder> {
     const fee = await this.get_icrc_token_fee(token);
+    const recipient_chain_id = await this.get_chain_id();
     const approve: ApproveArgs = {
       fee: [],
       memo: [],
@@ -280,8 +276,22 @@ export class Chain implements chainManagerIface {
         subaccount: [],
       },
     };
+    const mintReason: Icrc2Burn = {
+      recipient_chain_id,
+      operation_id,
+      icrc2_token_principal: token,
+      from_subaccount: [],
+      recipient_address: await this.signer.getAddress(),
+      amount: numberToHex(amount),
+    };
 
-    console.log("approve args", approve);
+    if ("batchTransactions" in this.Ic) {
+      return this.burn_icrc2_tokens_in_batch(
+        token.toText(),
+        approve,
+        mintReason,
+      );
+    }
     const icrcActor = await this.getActor<IcrcService>(token.toText(), IcrcIDL);
     const approvalResult = await icrcActor.icrc2_approve(approve);
     if ("Ok" in approvalResult) {
@@ -289,25 +299,7 @@ export class Chain implements chainManagerIface {
         time: new Date(),
         value: Number(approvalResult.Ok),
       });
-      console.log("approvalResult", approvalResult);
-
-      const recipient_chain_id = await this.get_chain_id();
-      const tokenAddress = await this.get_wrapped_token_address(
-        Id256Factory.fromPrincipal(token),
-      );
-      console.log("tokenAddress", tokenAddress);
-      if (tokenAddress) {
-        const mintReason: Icrc2Burn = {
-          recipient_chain_id,
-          operation_id,
-          icrc2_token_principal: token,
-          from_subaccount: [],
-          recipient_address: await this.signer.getAddress(),
-          amount: numberToHex(amount),
-        };
-        console.log("mintReason", mintReason);
-        return await this.createMintOrder(mintReason);
-      }
+      return await this.createMintOrder(mintReason);
     }
 
     throw Error("Impossible");
