@@ -3,6 +3,17 @@ import { Principal } from "@dfinity/principal";
 import { IcConnector } from "../ic";
 import { Signer, Provider, TransactionResponse, JsonRpcSigner } from "ethers";
 
+export interface IcWithBatchTransactions extends IcConnector {
+  batchTransactions: unknown;
+}
+export interface ChainConfig {
+  minterCanister: string;
+  Ic: IcConnector;
+  signer: JsonRpcSigner | Signer;
+  provider: Provider;
+  rpcUrl: string;
+  icHost: string;
+}
 export type TxHash = string;
 export type SwapResult = SuccessResult | FailResult;
 

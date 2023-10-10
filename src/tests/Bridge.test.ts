@@ -27,18 +27,18 @@ describe("Bridge class", () => {
     jest.clearAllMocks();
   });
 
-  /*  describe("Add Operation points", () => {
+  describe("Add Operation points", () => {
     it("should return the bridge contract address", async () => {
       await bridge.add_operation_points();
 
       //expect(result).toEqual(expect.any(Address));
     });
-  }); */
+  });
 
   describe("get_bft_bridge_contract", () => {
     it("should return the bridge contract address", async () => {
       const result = await bridge.get_bft_bridge_contract();
-
+      console.log("result", result);
       expect(result).toEqual(expect.any(Address));
     });
   });

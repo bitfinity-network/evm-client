@@ -9,13 +9,14 @@ import {
 import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
-import { Icrc2Burn } from "../ic/idl/minter/minter.did";
+import { Icrc2Burn, Result_1 } from "../ic/idl/minter/minter.did";
 import {
   Signer,
   ethers,
   Provider,
   TransactionResponse,
   JsonRpcSigner,
+  JsonRpcProvider,
 } from "ethers";
 
 import {
@@ -25,9 +26,14 @@ import {
   Id256Factory,
   SignedMintOrder,
 } from "../validation";
-import { chainManagerIface, TxHash } from "./Interfaces";
+import {
+  ChainConfig,
+  chainManagerIface,
+  IcWithBatchTransactions,
+  TxHash,
+} from "./Interfaces";
 import { numberToHex } from "web3-utils";
-import { ApproveArgs } from "../ic/idl/icrc/icrc.did";
+import { ApproveArgs, ApproveResult } from "../ic/idl/icrc/icrc.did";
 import { IcrcService } from "../ic";
 import { Principal } from "@dfinity/principal";
 import erc20TokenAbi from "../abi/erc20Token.json";
@@ -43,24 +49,35 @@ export class Chain implements chainManagerIface {
   public signer: JsonRpcSigner | Signer;
   public provider: Provider;
   public cache: CacheManager;
+  public jsonRpcProvider: JsonRpcProvider;
+  public IcWithoutIdentity: IcConnector;
+  public bftBridgeContractAddress: Address | undefined;
 
-  constructor(
-    minterCanister: string,
-    Ic: IcConnector,
-    signer: JsonRpcSigner | Signer,
-    provider: Provider,
-  ) {
+  constructor({
+    minterCanister,
+    Ic,
+    signer,
+    provider,
+    rpcUrl,
+    icHost,
+  }: ChainConfig) {
     this.minterCanister = minterCanister;
     this.Ic = Ic;
     this.signer = signer;
     this.provider = new WrappedProvider(provider).provider;
     this.cache = new CacheManager(100);
+    this.jsonRpcProvider = new ethers.JsonRpcProvider(rpcUrl);
+    this.IcWithoutIdentity = new IcConnector({ host: icHost });
   }
 
   private async getActor<T>(
     canisterId: string,
     interfaceFactory: IDL.InterfaceFactory,
+    withoutIdentity: boolean = false,
   ): Promise<ActorSubclass<T>> {
+    if (withoutIdentity) {
+      return await this.IcWithoutIdentity.actor(canisterId, interfaceFactory);
+    }
     if ("createActor" in this.Ic) {
       if (this.Ic && this.Ic?.createActor) {
         return await this.Ic.createActor({ canisterId, interfaceFactory });
@@ -75,17 +92,24 @@ export class Chain implements chainManagerIface {
   }
 
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
-    await this.add_operation_points();
-    const minterActor = await this.getActor<MinterService>(
-      this.minterCanister,
-      MinterIDL,
-    );
-    const result = await minterActor.get_bft_bridge_contract();
-    if ("Ok" in result) {
-      const address = result.Ok.length ? result.Ok[0] : "";
-      return new Address(address);
+    if (
+      !this.bftBridgeContractAddress ||
+      this.bftBridgeContractAddress.isZero()
+    ) {
+      const minterActor = await this.getActor<MinterService>(
+        this.minterCanister,
+        MinterIDL,
+      );
+
+      const result = await minterActor.get_bft_bridge_contract();
+      if ("Ok" in result) {
+        const address = result.Ok.length ? result.Ok[0] : "";
+        this.bftBridgeContractAddress = new Address(address);
+        return this.bftBridgeContractAddress;
+      }
+      return undefined;
     }
-    return undefined;
+    return this.bftBridgeContractAddress;
   }
 
   public async get_wrapped_token_address(
@@ -97,10 +121,9 @@ export class Chain implements chainManagerIface {
       const contract = new ethers.Contract(
         bridge?.getAddress(),
         BftBridgeABI,
-        this.provider,
+        this.jsonRpcProvider,
       );
       const wrappedToken = await contract.getWrappedToken(fromToken);
-      console.log("wrappedToken", wrappedToken);
       if (new Address(wrappedToken).isZero()) {
         return undefined;
       }
@@ -113,11 +136,8 @@ export class Chain implements chainManagerIface {
     symbol: string,
     fromToken: Id256,
   ): Promise<Address> {
-    console.log("getting wrapped token");
     const bridge = await this.get_bft_bridge_contract();
-    console.log("getting bridge address");
     const bridgeAddress = bridge?.getAddress();
-    console.log("getting wrapped token");
     let tokenAddress = await this.get_wrapped_token_address(fromToken);
 
     if (!tokenAddress && bridgeAddress) {
@@ -139,7 +159,11 @@ export class Chain implements chainManagerIface {
   public async get_icrc_token_fee(
     principal: Principal,
   ): Promise<number | undefined> {
-    const actor = await this.getActor<IcrcService>(principal.toText(), IcrcIDL);
+    const actor = await this.getActor<IcrcService>(
+      principal.toText(),
+      IcrcIDL,
+      true,
+    );
     const result = await actor.icrc1_fee();
     if (result) {
       return Number(result);
@@ -188,6 +212,55 @@ export class Chain implements chainManagerIface {
     return receipt;
   }
 
+  public async burn_icrc2_tokens_in_batch(
+    tokenPrincipal: string,
+    args: ApproveArgs,
+    mintReason: Icrc2Burn,
+  ): Promise<SignedMintOrder> {
+    return new Promise<SignedMintOrder>((resolve, reject) => {
+      let signedMintOrder: SignedMintOrder;
+      if (this.Ic && "batchTransactions" in this.Ic) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (this.Ic as any).batchTransactions([
+          {
+            idl: IcrcIDL,
+            canisterId: tokenPrincipal,
+            methodName: "icrc2_approve",
+            args: [args],
+            onSuccess: async (approvalResult: ApproveResult) => {
+              if ("Ok" in approvalResult) {
+                this.cacheTx(CACHE_KEYS.BURNT_TX, {
+                  time: new Date(),
+                  value: Number(approvalResult.Ok),
+                });
+                console.log("approvalResult", approvalResult);
+              }
+            },
+          },
+          {
+            idl: MinterIDL,
+            canisterId: this.minterCanister,
+            methodName: "create_erc_20_mint_order",
+            args: [mintReason],
+            onSuccess: async (result: Result_1) => {
+              if ("Err" in result) {
+                console.log(result.Err);
+                reject(result.Err);
+              } else {
+                this.cacheTx(CACHE_KEYS.MINT_ORDER, {
+                  time: new Date(),
+                  value: result.Ok,
+                });
+                signedMintOrder = ethers.getBytes(new Uint8Array(result.Ok));
+                resolve(signedMintOrder);
+              }
+            },
+          },
+        ]);
+      }
+    });
+  }
+
   public async burn_icrc2_tokens(
     token: Principal,
     amount: number,
@@ -207,6 +280,7 @@ export class Chain implements chainManagerIface {
         subaccount: [],
       },
     };
+
     console.log("approve args", approve);
     const icrcActor = await this.getActor<IcrcService>(token.toText(), IcrcIDL);
     const approvalResult = await icrcActor.icrc2_approve(approve);
@@ -218,8 +292,6 @@ export class Chain implements chainManagerIface {
       console.log("approvalResult", approvalResult);
 
       const recipient_chain_id = await this.get_chain_id();
-      await this.add_operation_points();
-
       const tokenAddress = await this.get_wrapped_token_address(
         Id256Factory.fromPrincipal(token),
       );
