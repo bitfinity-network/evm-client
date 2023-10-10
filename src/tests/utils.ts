@@ -2,6 +2,7 @@ import { Signer, ethers } from "ethers";
 import { mnemonicToSeed } from "bip39";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
 import erc20TokenAbi from "../abi/erc20Token.json";
+import canisterIds from "../ic/canister_ids.json";
 import { LOCAL_TEST_SEED_PHRASE, RPC_URL } from "../constants";
 import { exec } from "child_process";
 import hdkey from "hdkey";
@@ -47,7 +48,7 @@ export const mintNativeToken = async (address: string) => {
 export const mintTesttIcrcToken = async () => {
   const id = await identityFromSeed(LOCAL_TEST_SEED_PHRASE);
   const principalText = id.getPrincipal().toText();
-  const mintCommand = `dfx canister call b77ix-eeaaa-aaaaa-qaada-cai icrc1_transfer '(record { to = record { owner = principal "${principalText}"; }; amount = 1000000000:nat;})'`;
+  const mintCommand = `dfx canister call ${canisterIds.token.local} icrc1_transfer '(record { to = record { owner = principal "${principalText}"; }; amount = 1000000000:nat;})'`;
   exec(mintCommand, (error: Error | null, stdout: string, stderr: string) => {
     if (error) {
       console.error(`Error: ${error.message}`);
