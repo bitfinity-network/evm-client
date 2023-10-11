@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   EvmIDL,
   EvmService,
@@ -193,7 +192,7 @@ export class Chain implements chainManagerIface {
     token: Principal,
     amount: number,
     operation_id: number,
-  ): Promise<SignedMintOrder> {
+  ): Promise<SignedMintOrder | undefined> {
     try {
       const fee = await this.get_icrc_token_fee(token);
       const approve: ApproveArgs = {
@@ -243,7 +242,6 @@ export class Chain implements chainManagerIface {
         }
       }
     } catch (error) {
-      console.log("burn_icrc2_error", error);
       throw Error("Impossible");
     }
   }
@@ -302,6 +300,7 @@ export class Chain implements chainManagerIface {
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
       }
+      return undefined;
     }
   }
 
@@ -331,7 +330,7 @@ export class Chain implements chainManagerIface {
           String(amount),
         );
 
-        const _ = await approveTx.wait();
+        await approveTx.wait();
         const txReceipt = await this.wrappedProvider().getTransaction(
           approveTx.hash,
         );
