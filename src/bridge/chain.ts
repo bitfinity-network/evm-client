@@ -81,11 +81,6 @@ export class Chain implements chainManagerIface {
     return await this.Ic.actor(canisterId, interfaceFactory);
   }
 
-  public wrappedProvider(): Provider {
-    // const latestBlockNumber = await this.provider.getBlockNumber()
-    return this.provider;
-  }
-
   public async get_bft_bridge_contract(): Promise<Address | undefined> {
     if (
       !this.bftBridgeContractAddress ||
@@ -187,8 +182,8 @@ export class Chain implements chainManagerIface {
 
   async send_notification_tx(notification: string) {
     const userAddress = await this.signer.getAddress();
-    const nonce = await this.wrappedProvider().getTransactionCount(userAddress);
-    const gasPrice = (await this.wrappedProvider().getFeeData()).gasPrice;
+    const nonce = await this.provider.getTransactionCount(userAddress);
+    const gasPrice = (await this.provider.getFeeData()).gasPrice;
     const chainId = await this.get_chain_id();
 
     const transactionArgs = {
@@ -388,9 +383,7 @@ export class Chain implements chainManagerIface {
         { nonce: await this.get_nonce() },
       );
       await approveTx.wait();
-      const txReceipt = await this.wrappedProvider().getTransaction(
-        approveTx.hash,
-      );
+      const txReceipt = await this.provider.getTransaction(approveTx.hash);
       console.log("approvedTransfer", txReceipt);
       console.log("Burn ERC 20 Tokens");
       const recipient = chainId
@@ -512,7 +505,7 @@ export class Chain implements chainManagerIface {
       const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
       await tx.wait();
       this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
-      const txReceipt = await this.wrappedProvider().getTransaction(tx.hash);
+      const txReceipt = await this.provider.getTransaction(tx.hash);
       if (txReceipt) {
         return txReceipt;
       }
