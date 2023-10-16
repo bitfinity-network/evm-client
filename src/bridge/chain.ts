@@ -221,7 +221,6 @@ export class Chain implements chainManagerIface {
         });
         console.log("approvalResult", approvalResult);
 
-        const recipient_chain_id = await this.get_chain_id();
         await this.add_operation_points();
 
         const tokenAddress = await this.get_wrapped_token_address(
