@@ -21,6 +21,7 @@ export type Error =
   | { Internal: string }
   | { InvalidNonce: { got: bigint; minimum: bigint } }
   | { Icrc2ApproveError: ApproveError }
+  | { InvalidTokenAddress: null }
   | { BftBridgeAlreadyRegistered: string }
   | { Icrc2TransferFromError: TransferFromError }
   | { NotAuthorized: null }
@@ -31,7 +32,6 @@ export type Error =
   | { InvalidBftBridgeContract: null }
   | { InvalidBurnOperation: string };
 export interface Icrc2Burn {
-  recipient_chain_id: number;
   operation_id: number;
   from_subaccount: [] | [Uint8Array | number[]];
   icrc2_token_principal: Principal;
@@ -45,7 +45,6 @@ export interface InitData {
   signing_strategy: SigningStrategy;
   owner: Principal;
   spender_principal: Principal;
-  iceth_principal: Principal;
   bft_bridge_contract: [] | [string];
   log_settings: [] | [LogSettings];
   process_transactions_results_interval: [] | [Duration];
@@ -82,8 +81,8 @@ export interface OperationPricing {
   icrc_mint_approval: number;
   icrc_transfer: number;
 }
-export type Result = { Ok: bigint } | { Err: Error };
-export type Result_1 = { Ok: Uint8Array | number[] } | { Err: Error };
+export type Result = { Ok: Uint8Array | number[] } | { Err: Error };
+export type Result_1 = { Ok: bigint } | { Err: Error };
 export type Result_2 = { Ok: [] | [string] } | { Err: Error };
 export type Result_3 = { Ok: string } | { Err: Error };
 export type Result_4 = { Ok: Array<string> } | { Err: Error };
@@ -139,8 +138,11 @@ export type TransferFromError =
   | { TooOld: null }
   | { InsufficientFunds: { balance: bigint } };
 export interface _SERVICE {
-  approve_icrc2_mint: ActorMethod<[string, number], Result>;
-  create_erc_20_mint_order: ActorMethod<[Icrc2Burn], Result_1>;
+  create_erc_20_mint_order: ActorMethod<[Icrc2Burn], Result>;
+  finish_icrc2_mint: ActorMethod<
+    [number, string, Principal, Principal, bigint],
+    Result_1
+  >;
   get_bft_bridge_contract: ActorMethod<[], Result_2>;
   get_curr_metrics: ActorMethod<[], MetricsData>;
   get_evm_principal: ActorMethod<[], Principal>;
@@ -154,7 +156,6 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[]],
     Array<[number, Uint8Array | number[]]>
   >;
-  minter_eth_address: ActorMethod<[], Result_3>;
   on_evm_transaction_notification: ActorMethod<
     [[] | [TransactionReceipt], Uint8Array | number[]],
     [] | [null]
@@ -164,10 +165,7 @@ export interface _SERVICE {
   set_logger_filter: ActorMethod<[string], Result_5>;
   set_operation_pricing: ActorMethod<[OperationPricing], Result_5>;
   set_owner: ActorMethod<[Principal], Result_5>;
-  transfer_icrc2: ActorMethod<
-    [number, string, Principal, Principal, bigint],
-    Result
-  >;
+  start_icrc2_mint: ActorMethod<[string, number], Result_1>;
 }
 
 type T0 = Parameters<IDL.InterfaceFactory>;

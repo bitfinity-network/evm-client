@@ -230,7 +230,6 @@ export class Chain implements chainManagerIface {
         console.log("tokenAddress", tokenAddress);
         if (tokenAddress) {
           const mintReason: Icrc2Burn = {
-            recipient_chain_id,
             operation_id,
             icrc2_token_principal: token,
             from_subaccount: [],
@@ -276,7 +275,7 @@ export class Chain implements chainManagerIface {
       this.minterCanister,
       MinterIDL,
     );
-    const result = await actor.approve_icrc2_mint(userAddress, operation_id);
+    const result = await actor.start_icrc2_mint(userAddress, operation_id);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
@@ -289,7 +288,7 @@ export class Chain implements chainManagerIface {
         this.minterCanister,
         MinterIDL,
       );
-      const spenderResult = await actor.transfer_icrc2(
+      const spenderResult = await actor.finish_icrc2_mint(
         operation_id,
         userAddress,
         icrcToken,
