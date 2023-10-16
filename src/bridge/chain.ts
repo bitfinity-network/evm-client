@@ -383,7 +383,6 @@ export class Chain implements chainManagerIface {
         Number(amount),
         from_token.getAddress(),
         recipient,
-        chainId,
         {
           nonce: await this.get_nonce(),
           gasLimit: 350000,
