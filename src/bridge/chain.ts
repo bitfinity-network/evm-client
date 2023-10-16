@@ -9,7 +9,7 @@ import {
 import { IDL } from "@dfinity/candid";
 import BftBridgeABI from "../abi/BftBridge.json";
 import WrappedTokenABI from "../abi/WrappedToken.json";
-import { Icrc2Burn, Result_1 } from "../ic/idl/minter/minter.did";
+import { Icrc2Burn, Result } from "../ic/idl/minter/minter.did";
 import {
   Signer,
   ethers,
@@ -233,11 +233,12 @@ export class Chain implements chainManagerIface {
             canisterId: this.minterCanister,
             methodName: "create_erc_20_mint_order",
             args: [mintReason],
-            onSuccess: async (result: Result_1) => {
+            onSuccess: async (result: Result) => {
               if ("Err" in result) {
                 console.log(result.Err);
                 reject(result.Err);
-              } else {
+              }
+              if ("Ok" in result) {
                 this.cacheTx(CACHE_KEYS.MINT_ORDER, {
                   time: new Date(),
                   value: result.Ok,
@@ -258,7 +259,6 @@ export class Chain implements chainManagerIface {
     operation_id: number,
   ): Promise<SignedMintOrder> {
     const fee = await this.get_icrc_token_fee(token);
-    const recipient_chain_id = await this.get_chain_id();
     const approve: ApproveArgs = {
       fee: [],
       memo: [],
@@ -273,7 +273,6 @@ export class Chain implements chainManagerIface {
       },
     };
     const mintReason: Icrc2Burn = {
-      recipient_chain_id,
       operation_id,
       icrc2_token_principal: token,
       from_subaccount: [],
@@ -329,12 +328,12 @@ export class Chain implements chainManagerIface {
       this.minterCanister,
       MinterIDL,
     );
-    const result = await actor.approve_icrc2_mint(userAddress, operation_id);
+    const result = await actor.start_icrc2_mint(userAddress, operation_id);
     if ("Ok" in result) {
       await this.finish_burn(operation_id);
       const fee = await this.get_icrc_token_fee(icrcToken);
       const approvedAmount = Number(result.Ok) - fee!;
-      const spenderResult = await actor.transfer_icrc2(
+      const spenderResult = await actor.finish_icrc2_mint(
         operation_id,
         userAddress,
         icrcToken,

@@ -74,7 +74,7 @@ export interface chainManagerIface {
     token: Principal,
     amount: number,
     operation_id: number,
-  ) => Promise<SignedMintOrder>;
+  ) => Promise<SignedMintOrder | undefined>;
 
   get_chain_id: () => Promise<number>;
 
