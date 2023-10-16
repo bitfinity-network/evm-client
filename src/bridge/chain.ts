@@ -71,6 +71,7 @@ export class Chain implements chainManagerIface {
     withoutIdentity: boolean = false,
   ): Promise<ActorSubclass<T>> {
     if (withoutIdentity) {
+      console.log("ic without identity was called");
       return await this.IcWithoutIdentity.actor(canisterId, interfaceFactory);
     }
     if ("createActor" in this.Ic) {
@@ -281,7 +282,7 @@ export class Chain implements chainManagerIface {
     };
 
     if ("batchTransactions" in this.Ic) {
-      return this.burn_icrc2_tokens_in_batch(
+      return await this.burn_icrc2_tokens_in_batch(
         token.toText(),
         approve,
         mintReason,
@@ -324,25 +325,15 @@ export class Chain implements chainManagerIface {
     icrcToken: Principal,
   ): Promise<bigint | undefined> {
     const userAddress = await this.signer.getAddress();
-
-    console.log("args", { userAddress, operation_id });
     const actor = await this.getActor<MinterService>(
       this.minterCanister,
       MinterIDL,
     );
     const result = await actor.approve_icrc2_mint(userAddress, operation_id);
-    console.log("mint approval result", result);
-
     if ("Ok" in result) {
       await this.finish_burn(operation_id);
       const fee = await this.get_icrc_token_fee(icrcToken);
       const approvedAmount = Number(result.Ok) - fee!;
-      console.log("approved Amount", approvedAmount);
-      //console.log("approved Amount", "0x" + approvedAmount.toString(16));
-      const actor = await this.getActor<MinterService>(
-        this.minterCanister,
-        MinterIDL,
-      );
       const spenderResult = await actor.transfer_icrc2(
         operation_id,
         userAddress,
@@ -350,7 +341,6 @@ export class Chain implements chainManagerIface {
         this.Ic.getPrincipal()!,
         BigInt(approvedAmount),
       );
-      console.log("spenderResult", spenderResult);
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
       }
@@ -364,6 +354,7 @@ export class Chain implements chainManagerIface {
   ): Promise<string | undefined> {
     const bridge = await this.get_bft_bridge_contract();
     const bridgeAddress = bridge?.getAddress();
+
     if (bridgeAddress) {
       const bftContract = new ethers.Contract(
         bridgeAddress,
@@ -425,12 +416,12 @@ export class Chain implements chainManagerIface {
     const actor = await this.getActor<EvmService>(
       evm_canister_id.toString(),
       EvmIDL,
+      true,
     );
     const result = await actor.eth_get_transaction_receipt(hash);
     if ("Ok" in result) {
       const { Ok } = result;
       if (Ok.length) {
-        console.log("output number", Ok[0].output[0] as number[]);
         const blobData = Ok[0].output[0] as number[];
         const numberArray = Array.from(blobData);
         const numberString = numberArray.join("");
