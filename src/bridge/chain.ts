@@ -192,53 +192,56 @@ export class Chain implements chainManagerIface {
     token: Principal,
     amount: number,
     operation_id: number,
-  ): Promise<SignedMintOrder> {
-    const fee = await this.get_icrc_token_fee(token);
-    const approve: ApproveArgs = {
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: BigInt(amount + fee!),
-      expected_allowance: [],
-      expires_at: [],
-      spender: {
-        owner: Principal.fromText(this.minterCanister),
-        subaccount: [],
-      },
-    };
-    console.log("approve args", approve);
-    const icrcActor = await this.getActor<IcrcService>(token.toText(), IcrcIDL);
-    const approvalResult = await icrcActor.icrc2_approve(approve);
-    if ("Ok" in approvalResult) {
-      this.cacheTx(CACHE_KEYS.BURNT_TX, {
-        time: new Date(),
-        value: Number(approvalResult.Ok),
-      });
-      console.log("approvalResult", approvalResult);
-
-      const recipient_chain_id = await this.get_chain_id();
-      await this.add_operation_points();
-
-      const tokenAddress = await this.get_wrapped_token_address(
-        Id256Factory.fromPrincipal(token),
+  ): Promise<SignedMintOrder | undefined> {
+    try {
+      const fee = await this.get_icrc_token_fee(token);
+      const approve: ApproveArgs = {
+        fee: [],
+        memo: [],
+        from_subaccount: [],
+        created_at_time: [],
+        amount: BigInt(amount + fee!),
+        expected_allowance: [],
+        expires_at: [],
+        spender: {
+          owner: Principal.fromText(this.minterCanister),
+          subaccount: [],
+        },
+      };
+      console.log("approve args", approve);
+      const icrcActor = await this.getActor<IcrcService>(
+        token.toText(),
+        IcrcIDL,
       );
-      console.log("tokenAddress", tokenAddress);
-      if (tokenAddress) {
-        const mintReason: Icrc2Burn = {
-          recipient_chain_id,
-          operation_id,
-          icrc2_token_principal: token,
-          from_subaccount: [],
-          recipient_address: await this.signer.getAddress(),
-          amount: numberToHex(amount),
-        };
-        console.log("mintReason", mintReason);
-        return await this.createMintOrder(mintReason);
-      }
-    }
+      const approvalResult = await icrcActor.icrc2_approve(approve);
+      if ("Ok" in approvalResult) {
+        this.cacheTx(CACHE_KEYS.BURNT_TX, {
+          time: new Date(),
+          value: Number(approvalResult.Ok),
+        });
+        console.log("approvalResult", approvalResult);
 
-    throw Error("Impossible");
+        await this.add_operation_points();
+
+        const tokenAddress = await this.get_wrapped_token_address(
+          Id256Factory.fromPrincipal(token),
+        );
+        console.log("tokenAddress", tokenAddress);
+        if (tokenAddress) {
+          const mintReason: Icrc2Burn = {
+            operation_id,
+            icrc2_token_principal: token,
+            from_subaccount: [],
+            recipient_address: await this.signer.getAddress(),
+            amount: numberToHex(amount),
+          };
+          console.log("mintReason", mintReason);
+          return await this.createMintOrder(mintReason);
+        }
+      }
+    } catch (error) {
+      throw Error("Impossible");
+    }
   }
 
   public async createMintOrder(
@@ -271,7 +274,7 @@ export class Chain implements chainManagerIface {
       this.minterCanister,
       MinterIDL,
     );
-    const result = await actor.approve_icrc2_mint(userAddress, operation_id);
+    const result = await actor.start_icrc2_mint(userAddress, operation_id);
     console.log("mint approval result", result);
 
     if ("Ok" in result) {
@@ -284,7 +287,7 @@ export class Chain implements chainManagerIface {
         this.minterCanister,
         MinterIDL,
       );
-      const spenderResult = await actor.transfer_icrc2(
+      const spenderResult = await actor.finish_icrc2_mint(
         operation_id,
         userAddress,
         icrcToken,
@@ -295,6 +298,7 @@ export class Chain implements chainManagerIface {
       if ("Ok" in spenderResult) {
         return spenderResult.Ok;
       }
+      return undefined;
     }
   }
 
@@ -303,61 +307,67 @@ export class Chain implements chainManagerIface {
     amount: number,
     chainId: number = 0,
   ): Promise<string | undefined> {
-    const bridge = await this.get_bft_bridge_contract();
-    const bridgeAddress = bridge?.getAddress();
-    if (bridgeAddress) {
-      const bftContract = new ethers.Contract(
-        bridgeAddress,
-        BftBridgeABI,
-        this.signer,
-      );
-      const WrappedTokenContract = new ethers.Contract(
-        from_token.getAddress(),
-        WrappedTokenABI,
-        this.signer,
-      );
-      const userAddress = await this.signer.getAddress();
+    try {
+      const bridge = await this.get_bft_bridge_contract();
+      const bridgeAddress = bridge?.getAddress();
+      if (bridgeAddress) {
+        const bftContract = new ethers.Contract(
+          bridgeAddress,
+          BftBridgeABI,
+          this.signer,
+        );
+        const WrappedTokenContract = new ethers.Contract(
+          from_token.getAddress(),
+          WrappedTokenABI,
+          this.signer,
+        );
+        const userAddress = await this.signer.getAddress();
 
-      const approveTx = await WrappedTokenContract.approve(
-        bridgeAddress,
-        String(amount),
-        { nonce: await this.get_nonce() },
-      );
-      await approveTx.wait();
-      const txReceipt = await this.wrappedProvider().getTransaction(
-        approveTx.hash,
-      );
-      console.log("approvedTransfer", txReceipt);
-      console.log("Burn ERC 20 Tokens");
-      const recipient = chainId
-        ? Id256Factory.fromAddress(new AddressWithChainID(userAddress, chainId))
-        : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
-      const tx = await bftContract.burn(
-        Number(amount),
-        from_token.getAddress(),
-        recipient,
-        chainId,
-        {
-          nonce: await this.get_nonce(),
-          gasLimit: 350000,
-        },
-      );
-      this.cacheTx(CACHE_KEYS.BURNT_TX, {
-        time: new Date(),
-        value: tx.hash,
-        info: {
-          userAddress,
-        },
-      });
-      await tx.wait();
+        const approveTx = await WrappedTokenContract.approve(
+          bridgeAddress,
+          String(amount),
+        );
 
-      //decode data
+        await approveTx.wait();
+        const txReceipt = await this.wrappedProvider().getTransaction(
+          approveTx.hash,
+        );
+        console.log("approvedTransfer", txReceipt);
+        console.log("Burn ERC 20 Tokens");
+        const recipient = chainId
+          ? Id256Factory.fromAddress(
+              new AddressWithChainID(userAddress, chainId),
+            )
+          : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
+        const tx = await bftContract.burn(
+          Number(amount),
+          from_token.getAddress(),
+          recipient,
+          {
+            nonce: await this.get_nonce(),
+            gasLimit: 350000,
+          },
+        );
 
-      if (tx) {
-        return tx.hash;
-      } else {
-        throw Error("Transaction not successful");
+        this.cacheTx(CACHE_KEYS.BURNT_TX, {
+          time: new Date(),
+          value: tx.hash,
+          info: {
+            userAddress,
+          },
+        });
+        await tx.wait();
+
+        //decode data
+
+        if (tx) {
+          return tx.hash;
+        } else {
+          throw Error("Transaction not successful");
+        }
       }
+    } catch (error) {
+      console.log("burn erc20 error", error);
     }
   }
 

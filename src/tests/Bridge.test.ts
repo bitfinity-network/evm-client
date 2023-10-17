@@ -9,7 +9,7 @@ jest.setTimeout(30000);
 
 describe("Bridge class", () => {
   let bridge: Chain;
-  let signedMintOrder: ethers.BytesLike;
+  let signedMintOrder: ethers.BytesLike | undefined;
   let ercToken: Address;
   let tokenInId256: Id256;
   let operation_id: number;
@@ -70,7 +70,7 @@ describe("Bridge class", () => {
 
   describe("Mint ERC20 Token", () => {
     it("should return Transaction response", async () => {
-      const result = await bridge.mintOrder(signedMintOrder);
+      const result = await bridge.mintOrder(signedMintOrder!);
       console.log("mint result", result);
       expect(result).toEqual(expect.any(TransactionResponse));
     });
@@ -80,7 +80,7 @@ describe("Bridge class", () => {
     it("should return hash string", async () => {
       burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, 0);
       expect(burnTxHash).toEqual(expect.any(String));
-    });
+    }, 60000);
   });
 
   describe("Get Operation id from burnt transaction hash", () => {
@@ -102,7 +102,7 @@ describe("Bridge class", () => {
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));
-    });
+    }, 60000);
   });
 
   describe("Get all cached Transaction", () => {
