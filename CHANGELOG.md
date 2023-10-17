@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.1
+
+### Patch Changes
+
+- updated function name change
+
 ## 0.2.0
 
 ### Minor Changes
