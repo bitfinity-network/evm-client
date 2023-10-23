@@ -1,5 +1,17 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.1
+
+### Patch Changes
+
+- updated function name change
+
+## 0.2.0
+
+### Minor Changes
+
+- removed unnecessary permission calls and add batchTransactions
+
 ## 0.1.7
 
 ### Patch Changes
