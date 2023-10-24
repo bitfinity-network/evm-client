@@ -4,7 +4,7 @@ import { Address, Id256, Id256Factory } from "../validation";
 import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
 import { CACHE_KEYS, TEST_TOKEN_PRINCIPAL } from "../constants";
-import { TransactionResponse, ethers } from "ethers";
+import { TransactionReceipt, TransactionResponse, ethers } from "ethers";
 jest.setTimeout(30000);
 
 describe("Bridge class", () => {
@@ -27,13 +27,12 @@ describe("Bridge class", () => {
     jest.clearAllMocks();
   });
 
-  /*  describe("Add Operation points", () => {
+  describe("Add Operation points", () => {
     it("should return the bridge contract address", async () => {
-      await bridge.add_operation_points();
-
-      //expect(result).toEqual(expect.any(Address));
+      const result = await bridge.add_operation_points();
+      expect(result).toEqual(expect.any(TransactionReceipt));
     });
-  }); */
+  });
 
   describe("get_bft_bridge_contract", () => {
     it("should return the bridge contract address", async () => {
