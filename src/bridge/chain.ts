@@ -71,7 +71,6 @@ export class Chain implements chainManagerIface {
     withoutIdentity: boolean = false,
   ): Promise<ActorSubclass<T>> {
     if (withoutIdentity) {
-      console.log("ic without identity was called");
       return await this.IcWithoutIdentity.actor(canisterId, interfaceFactory);
     }
     if ("createActor" in this.Ic) {
@@ -93,6 +92,7 @@ export class Chain implements chainManagerIface {
       );
 
       const result = await minterActor.get_bft_bridge_contract();
+      console.log("result", result);
       if ("Ok" in result) {
         const address = result.Ok.length ? result.Ok[0] : "";
         this.bftBridgeContractAddress = new Address(address);
@@ -178,7 +178,7 @@ export class Chain implements chainManagerIface {
       "evm_canister_notification_needed",
       [tx_hash, receiver_canister, user_data],
     );
-    await this.send_notification_tx(encodedData);
+    return await this.send_notification_tx(encodedData);
   }
 
   async send_notification_tx(notification: string) {
@@ -198,7 +198,6 @@ export class Chain implements chainManagerIface {
       data: notification,
     };
     const tx = await this.signer.sendTransaction(transactionArgs);
-    console.log("result", tx);
     const receipt = await tx.wait();
     return receipt;
   }
@@ -375,7 +374,6 @@ export class Chain implements chainManagerIface {
       await approveTx.wait();
       const txReceipt = await this.provider.getTransaction(approveTx.hash);
       console.log("approvedTransfer", txReceipt);
-      console.log("Burn ERC 20 Tokens");
       const recipient = chainId
         ? Id256Factory.fromAddress(new AddressWithChainID(userAddress, chainId))
         : Id256Factory.fromPrincipal(this.Ic.getPrincipal()!);
@@ -544,7 +542,6 @@ export class Chain implements chainManagerIface {
       this.signer,
     );
     const result = await contract.balanceOf(await this.signer.getAddress());
-    console.log("balance of", result);
     return Number(result);
   }
 

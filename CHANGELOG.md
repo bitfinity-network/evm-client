@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.2
+
+### Patch Changes
+
+- added operation points on tests
+
 ## 0.2.1
 
 ### Patch Changes
