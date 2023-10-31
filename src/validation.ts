@@ -24,6 +24,14 @@ export class Id256Factory {
     buf.set(prinBuffer, 2);
     return buf;
   }
+  static hexToPrincipal(hexString) {
+    const cleanHexString = hexString.replace("0x", "");
+    const buf = Buffer.from(cleanHexString, "hex");
+    const length = buf.readUInt8(1);
+    const principalData = Buffer.alloc(length);
+    buf.copy(principalData, 0, 2, 2 + length);
+    return Principal.fromUint8Array(Uint8Array.from(principalData));
+  }
 
   static principalToBytes32(principal: Principal): Uint8Array {
     const oldBuffer = principal.toUint8Array();
