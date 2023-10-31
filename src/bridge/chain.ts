@@ -122,7 +122,7 @@ export class Chain implements chainManagerIface {
     }
   }
 
-  public async get_base_token(address) {
+  public async get_base_token(address: string) {
     const bridge = await this.get_bft_bridge_contract();
 
     if (bridge) {
