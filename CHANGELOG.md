@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.3
+
+### Patch Changes
+
+- added function to get base token principal from wrapped rec20 address
+
 ## 0.2.2
 
 ### Patch Changes
