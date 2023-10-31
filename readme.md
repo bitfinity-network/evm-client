@@ -22,10 +22,24 @@ yarn add @infinityswapofficial/evm-client
 
 ```js
     import { Chain } from "@infinityswapofficial/evm-client";
-    const bridge = new Chain(MINTER_CANISTER, Ic, signer, provider);
+    const bridge = new Chain({
+        minterCanister,
+        Ic,
+        signer,
+        provider,
+        rpcUrl, // eg https://testnet.bitfinity.network 
+        icHost, // Your icHost url
+    });
 ```
 
 Find test files at `src/tests`
+
+### Add Operation Points
+
+```js
+    const operationReceipt = await bridge.add_operation_points();
+```
+
 
 ### Get Bitfinity Bridge Contract Address
 Call the `get_bft_bridge_contract` on the `Chain` class to get bft bridge contract address
@@ -69,10 +83,11 @@ tokenInId256 = Id256Factory.fromAddress(new AddressWithChainID(erc20TokenAddress
 ```
 
 ### Burning icrc Tokens
-Burns a specified amount of ICRC tokens to initiate the creation of an ERC20 mint order. Operation_id is a unique number to add to your burn. This can be used to retrieve a burn or initialize one in case something goes wrong. You can generate one using `bridge.generateOperationId()` or use your own format.
+Burns a specified amount of ICRC tokens to initiate the creation of an ERC20 mint order. Operation_id is a unique number to add to your burn. This can be used to retrieve a burn or initialize one in case something goes wrong. You can generate one using `bridge.generateOperationId()` or use your own format. 
 
 ```js
-const signedMintOrder = await bridge.burn_icrc2_tokens(TOKEN_PRINCIPAL,1000000, operation_id);
+const operation_id = bridge.generateOperationId();
+const signedMintOrder = await bridge.burn_icrc2_tokens(TOKEN_PRINCIPAL,amount, operation_id);
 ```
 
 ### Mint ERC20 Token
@@ -89,5 +104,35 @@ Retrieves cached transactions, including mint transactions.
 const cachedMintTx = await bridge.getCacheTx(); // get burnt transaction hash
 const cachedMintTx = await bridge.getCacheTx("evm_client_mint"); // get mint results
 const cachedMintTx = await bridge.getCacheTx("evm_client_mint_order"); // get mint order
+
+```
+
+### Burn ERC20 Token
+Burn erc20 tokens
+
+```js
+const burnTxHash = await bridge.burn_erc_20_tokens(ercToken, 1000000, 0);
+
+```
+
+### Get Operation id from burnt transaction hash
+Burn erc20 tokens
+
+```js
+const operation_id = await bridge.get_operation_id(Principal.fromText(canisterIds.evm.local),burnTxHash!);
+
+```
+
+### Minting ICRC Tokens after burning erc20 tokens
+
+```js
+const mintResult = await bridge.mint_icrc_tokens(operation_id,Principal.fromText(canisterIds.token.local));
+
+```
+
+### Get base token principal from wrapped erc20 token address
+
+```js
+const baseTokenPrincipal = await bridge.get_base_token(ercToken.getAddress());
 
 ```
