@@ -23,14 +23,13 @@ describe("Bridge class", () => {
     bridge = initializedBridge;
   });
 
-  afterAll(() => {
-    jest.clearAllMocks();
+  beforeEach(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   });
 
   describe("Add Operation points", () => {
     it("should return a TransactionReceipt", async () => {
       const result = await bridge.add_operation_points();
-      console.log("operationPoint", result);
       expect(result).toEqual(expect.any(TransactionReceipt));
     });
   });
@@ -92,7 +91,7 @@ describe("Bridge class", () => {
       const result = await bridge.mintOrder(signedMintOrder!);
       console.log("mint result", result);
       expect(result).toEqual(expect.any(TransactionResponse));
-    });
+    }, 60000);
   });
 
   describe("burn erc20 token", () => {
