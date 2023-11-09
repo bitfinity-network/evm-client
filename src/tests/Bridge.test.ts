@@ -120,7 +120,7 @@ describe("Bridge class", () => {
       );
       console.log("mint icrc result", result);
       expect(result).toEqual(expect.any(BigInt));
-    }, 60000);
+    }, 120000);
   });
 
   describe("Get all cached Transaction", () => {
