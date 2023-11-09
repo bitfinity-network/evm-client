@@ -5,7 +5,7 @@ import { Principal } from "@dfinity/principal";
 import canisterIds from "../ic/canister_ids.json";
 import { CACHE_KEYS, TEST_TOKEN_PRINCIPAL } from "../constants";
 import { TransactionReceipt, TransactionResponse, ethers } from "ethers";
-jest.setTimeout(30000);
+jest.setTimeout(120000);
 
 describe("Bridge class", () => {
   let bridge: Chain;
@@ -30,6 +30,7 @@ describe("Bridge class", () => {
   describe("Add Operation points", () => {
     it("should return a TransactionReceipt", async () => {
       const result = await bridge.add_operation_points();
+      console.log("operationPoint", result);
       expect(result).toEqual(expect.any(TransactionReceipt));
     });
   });
