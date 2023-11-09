@@ -28,7 +28,7 @@ describe("Bridge class", () => {
   });
 
   describe("Add Operation points", () => {
-    it("should return the bridge contract address", async () => {
+    it("should return a TransactionReceipt", async () => {
       const result = await bridge.add_operation_points();
       expect(result).toEqual(expect.any(TransactionReceipt));
     });
@@ -39,6 +39,25 @@ describe("Bridge class", () => {
       const result = await bridge.get_bft_bridge_contract();
 
       expect(result).toEqual(expect.any(Address));
+    });
+  });
+
+  describe("deploy_bft_wrapped_token icrc", () => {
+    it("should return the wrapped token address", async () => {
+      ercToken = await bridge.deploy_bft_wrapped_token(
+        "Token",
+        "TKN",
+        tokenInId256,
+      );
+
+      expect(ercToken).toEqual(expect.any(Address));
+    });
+  });
+
+  describe("Get base token principal from wrapped erc20 token address", () => {
+    it("should return the base token principal", async () => {
+      const result = await bridge.get_base_token(ercToken.getAddress());
+      expect(result?.toText()).toEqual(canisterIds.token.local);
     });
   });
 

@@ -217,6 +217,25 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wrappedTokenAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getBaseToken",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "getDepositBlocks",
     "outputs": [

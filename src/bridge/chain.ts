@@ -122,6 +122,21 @@ export class Chain implements chainManagerIface {
     }
   }
 
+  public async get_base_token(address: string) {
+    const bridge = await this.get_bft_bridge_contract();
+
+    if (bridge) {
+      const contract = new ethers.Contract(
+        bridge?.getAddress(),
+        BftBridgeABI,
+        this.jsonRpcProvider,
+      );
+      const baseToken = await contract.getBaseToken(address);
+
+      return Id256Factory.hexToPrincipal(baseToken);
+    }
+  }
+
   public async deploy_bft_wrapped_token(
     name: string,
     symbol: string,
