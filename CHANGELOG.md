@@ -1,5 +1,23 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.6
+
+### Patch Changes
+
+- removed gasPrice
+
+## 0.2.5
+
+### Patch Changes
+
+- reject errors on batch transactions
+
+## 0.2.4
+
+### Patch Changes
+
+- removed custom gaslimit
+
 ## 0.2.3
 
 ### Patch Changes

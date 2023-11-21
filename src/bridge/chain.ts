@@ -199,15 +199,11 @@ export class Chain implements chainManagerIface {
   async send_notification_tx(notification: string) {
     const userAddress = await this.signer.getAddress();
     const nonce = await this.provider.getTransactionCount(userAddress);
-    const gasPrice = (await this.provider.getFeeData()).gasPrice;
     const chainId = await this.get_chain_id();
-
     const transactionArgs = {
       from: userAddress,
       to: userAddress,
-      gasLimit: BigInt(30000),
       nonce,
-      gasPrice,
       value: ethers.parseEther("0"),
       chainId,
       data: notification,
@@ -239,7 +235,13 @@ export class Chain implements chainManagerIface {
                   value: Number(approvalResult.Ok),
                 });
                 console.log("approvalResult", approvalResult);
+              } else {
+                reject(approvalResult.Err);
               }
+            },
+            onFail: (error) => {
+              console.log("threw error", error);
+              reject(error);
             },
           },
           {
@@ -260,6 +262,10 @@ export class Chain implements chainManagerIface {
                 signedMintOrder = ethers.getBytes(new Uint8Array(result.Ok));
                 resolve(signedMintOrder);
               }
+            },
+            onFail: (error) => {
+              console.log("threw error");
+              reject(error);
             },
           },
         ]);
@@ -398,7 +404,6 @@ export class Chain implements chainManagerIface {
         recipient,
         {
           nonce: await this.get_nonce(),
-          gasLimit: 350000,
         },
       );
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
@@ -456,7 +461,6 @@ export class Chain implements chainManagerIface {
       );
       const tx = await bridge.finishBurn(operation_id, {
         nonce,
-        gasLimit: 200000,
       });
       await tx.wait();
       return tx;
@@ -478,7 +482,6 @@ export class Chain implements chainManagerIface {
       const result = await bridge.burn(recipient, dstChainId, {
         value: amount,
         nonce: await this.get_nonce(),
-        gasLimit: 200000,
       });
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
         time: new Date(),
@@ -504,7 +507,7 @@ export class Chain implements chainManagerIface {
         BftBridgeABI,
         this.signer,
       );
-      const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
+      const tx = await bridge.mint(encodedOrder, { nonce });
       await tx.wait();
       this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
       const txReceipt = await this.provider.getTransaction(tx.hash);
