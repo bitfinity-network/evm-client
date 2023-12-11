@@ -92,7 +92,7 @@ export class Chain implements chainManagerIface {
       );
 
       const result = await minterActor.get_bft_bridge_contract();
-      console.log("result", result);
+      console.log("get_bft_bridge_contract result", result);
       if ("Ok" in result) {
         const address = result.Ok.length ? result.Ok[0] : "";
         this.bftBridgeContractAddress = new Address(address);
@@ -152,10 +152,7 @@ export class Chain implements chainManagerIface {
         BftBridgeABI,
         this.signer,
       );
-      const nonce = await this.get_nonce();
-      const tx = await contract.deployERC20(name, symbol, fromToken, {
-        nonce,
-      });
+      const tx = await contract.deployERC20(name, symbol, fromToken);
       await tx.wait();
       tokenAddress = await this.get_wrapped_token_address(fromToken);
     }
@@ -198,15 +195,12 @@ export class Chain implements chainManagerIface {
 
   async send_notification_tx(notification: string) {
     const userAddress = await this.signer.getAddress();
-    const nonce = await this.provider.getTransactionCount(userAddress);
     const gasPrice = (await this.provider.getFeeData()).gasPrice;
     const chainId = await this.get_chain_id();
 
     const transactionArgs = {
       from: userAddress,
       to: userAddress,
-      gasLimit: BigInt(30000),
-      nonce,
       gasPrice,
       value: ethers.parseEther("0"),
       chainId,
@@ -384,7 +378,6 @@ export class Chain implements chainManagerIface {
       const approveTx = await WrappedTokenContract.approve(
         bridgeAddress,
         String(amount),
-        { nonce: await this.get_nonce() },
       );
       await approveTx.wait();
       const txReceipt = await this.provider.getTransaction(approveTx.hash);
@@ -396,10 +389,6 @@ export class Chain implements chainManagerIface {
         Number(amount),
         from_token.getAddress(),
         recipient,
-        {
-          nonce: await this.get_nonce(),
-          gasLimit: 350000,
-        },
       );
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
         time: new Date(),
@@ -447,17 +436,13 @@ export class Chain implements chainManagerIface {
   ): Promise<TransactionResponse | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
 
-    const nonce = await this.get_nonce();
     if (bridgeAddress && bridgeAddress.getAddress()) {
       const bridge = new ethers.Contract(
         bridgeAddress.getAddress(),
         BftBridgeABI,
         this.signer,
       );
-      const tx = await bridge.finishBurn(operation_id, {
-        nonce,
-        gasLimit: 200000,
-      });
+      const tx = await bridge.finishBurn(operation_id);
       await tx.wait();
       return tx;
     }
@@ -477,7 +462,6 @@ export class Chain implements chainManagerIface {
       );
       const result = await bridge.burn(recipient, dstChainId, {
         value: amount,
-        nonce: await this.get_nonce(),
         gasLimit: 200000,
       });
       this.cacheTx(CACHE_KEYS.BURNT_TX, {
@@ -497,14 +481,13 @@ export class Chain implements chainManagerIface {
     encodedOrder: SignedMintOrder,
   ): Promise<TransactionResponse | undefined> {
     const bridgeAddress = await this.get_bft_bridge_contract();
-    const nonce = await this.get_nonce();
     if (bridgeAddress && bridgeAddress.getAddress()) {
       const bridge = new ethers.Contract(
         bridgeAddress.getAddress(),
         BftBridgeABI,
         this.signer,
       );
-      const tx = await bridge.mint(encodedOrder, { nonce, gasLimit: 200000 });
+      const tx = await bridge.mint(encodedOrder);
       await tx.wait();
       this.cacheTx(CACHE_KEYS.MINT, { time: new Date(), value: tx.hash });
       const txReceipt = await this.provider.getTransaction(tx.hash);
