@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.4
+
+### Patch Changes
+
+- removed custom nonce and gaslimit
+
 ## 0.2.3
 
 ### Patch Changes
