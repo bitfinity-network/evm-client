@@ -1,5 +1,11 @@
 # @infinityswapofficial/evm-client
 
+## 0.2.8
+
+### Patch Changes
+
+- updated chain
+
 ## 0.2.4
 
 ### Patch Changes
